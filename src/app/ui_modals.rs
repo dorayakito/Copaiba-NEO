@@ -115,6 +115,17 @@ impl CopaibaApp {
                     });
                     ui.separator();
 
+                    ui.heading("🌐 Codificação");
+                    egui::ComboBox::from_label("Encoding de texto")
+                        .selected_text(format!("{:?}", self.encoding))
+                        .show_ui(ui, |ui| {
+                            use crate::oto::OtoEncoding;
+                            if ui.selectable_value(&mut self.encoding, OtoEncoding::Utf8, "UTF-8").clicked() { self.load_character_metadata(self.current_tab); }
+                            if ui.selectable_value(&mut self.encoding, OtoEncoding::ShiftJis, "Shift-JIS (Japonês)").clicked() { self.load_character_metadata(self.current_tab); }
+                            if ui.selectable_value(&mut self.encoding, OtoEncoding::Gbk, "GBK (Chinês)").clicked() { self.load_character_metadata(self.current_tab); }
+                        });
+                    ui.separator();
+
                     ui.heading("🎨 Espectrograma");
                     ui.checkbox(&mut self.show_spectrogram, "Habilitar Espectrograma HD");
                     ui.add_space(4.0);

@@ -16,8 +16,8 @@ impl CopaibaApp {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     let total = tab.entries.len();
                     let sel = tab.selected;
-
-                    ui.label(RichText::new(format!("Linha: {}/{}", sel + 1, total)).small().color(egui::Color32::GRAY));
+                    let sel_display = if sel == usize::MAX { 0 } else { sel + 1 };
+                    ui.label(RichText::new(format!("Linha: {}/{}", sel_display, total)).small().color(egui::Color32::GRAY));
                     ui.add_space(16.0);
 
                     let done_count = tab.entries.iter().filter(|e| e.done).count();

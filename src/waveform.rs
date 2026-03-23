@@ -654,6 +654,10 @@ pub fn draw_waveform(
                     } else {
                         // SRnA OFF (Standard): Everything moves together
                         entry.offset = new_offset;
+                        // For Cutoff > 0 (relative to end), we must adjust it by -delta to shift it.
+                        if entry.cutoff >= 0.0 {
+                            entry.cutoff = (entry.cutoff - delta).max(0.0);
+                        }
                     }
                 }
                 DragTarget::Preutter  => { 
@@ -666,10 +670,11 @@ pub fn draw_waveform(
                         entry.offset = (entry.offset + delta).max(0.0);
                         let off_real_delta = entry.offset - old_off;
                         
-                        // Keep relative values the same 
-                        // (if offset was capped at 0, preutter/etc will reflect the remaining change)
-                        if entry.cutoff < 0.0 {
-                            entry.cutoff += off_real_delta;
+                        // In SRP mode (everything moves together):
+                        // Relative values for preutter, overlap, consonant stay same => they shift with offset.
+                        // For Cutoff > 0 (relative to end), we must adjust it by -delta to shift it.
+                        if entry.cutoff >= 0.0 {
+                            entry.cutoff = (entry.cutoff - off_real_delta).max(0.0);
                         }
                     } else {
                         // SRP OFF: Independent preutter move
@@ -688,12 +693,23 @@ pub fn draw_waveform(
                 DragTarget::Cutoff => {
                     let max_rel = entry.consonant.max(entry.preutter).max(entry.overlap);
                     let min_ms = entry.offset + max_rel;
-                    if entry.cutoff < 0.0 {
-                        let target_ms = ms.max(min_ms + 1.0);
-                        entry.cutoff = -(target_ms - entry.offset);
+                    
+                    let mods = ui.input(|i| i.modifiers);
+                    if mods.alt {
+                        // Toggle mode while dragging
+                        if entry.cutoff < 0.0 {
+                            entry.cutoff = (dur - ms).max(0.0);
+                        } else {
+                            entry.cutoff = -(ms - entry.offset);
+                        }
                     } else {
-                        let target_ms = ms.max(min_ms);
-                        entry.cutoff = (dur - target_ms).max(0.0);
+                        if entry.cutoff < 0.0 {
+                            let target_ms = ms.max(min_ms + 1.0);
+                            entry.cutoff = -(target_ms - entry.offset);
+                        } else {
+                            let target_ms = ms.max(min_ms);
+                            entry.cutoff = (dur - target_ms).max(0.0);
+                        }
                     }
                 }
                 DragTarget::None => {}
@@ -821,7 +837,7 @@ pub fn draw_waveform(
 
     InteractionResult {
         drag_started: response.drag_started(),
-        drag_released: response.drag_released(),
+        drag_released: response.drag_stopped(),
         clicked: response.clicked(),
         modified,
         nav_delta,

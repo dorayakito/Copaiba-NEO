@@ -68,6 +68,11 @@ pub struct TabState {
     pub filtered: Vec<usize>,
     pub original_entries: Vec<OtoEntry>,
     pub focus_col: usize,
+    pub character_name: String,
+    pub character_image_path: Option<PathBuf>,
+    pub character_texture: Option<egui::TextureHandle>,
+    pub readme_text: String,
+    pub license_text: String,
 }
 
 impl Default for TabState {
@@ -87,6 +92,11 @@ impl Default for TabState {
             filtered: Vec::new(),
             original_entries: Vec::new(),
             focus_col: 2,
+            character_name: String::new(),
+            character_image_path: None,
+            character_texture: None,
+            readme_text: String::new(),
+            license_text: String::new(),
         }
     }
 }

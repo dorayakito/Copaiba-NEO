@@ -89,6 +89,9 @@ impl CopaibaApp {
                 }
                 self.rebuild_filter();
                 self.ensure_wav_loaded();
+                for i in 0..self.tabs.len() {
+                    self.load_character_metadata(i);
+                }
             } else {
                 // FALLBACK: no oto.ini → create from .wav files
                 let mut wavs = Vec::new();
@@ -162,6 +165,99 @@ impl CopaibaApp {
         }
     }
 
+    pub fn load_character_metadata(&mut self, tab_idx: usize) {
+        let dir_opt = self.tabs[tab_idx].oto_dir.clone();
+        let encoding = self.encoding;
+
+        if let Some(mut current_dir) = dir_opt {
+            // Search up to 4 levels for character.txt (recursive search for voicebank root)
+            for _ in 0..4 {
+                let char_path = current_dir.join("character.txt");
+                if char_path.exists() {
+                    if let Ok(bytes) = std::fs::read(&char_path) {
+                        // Decode using the current encoding (same as oto.ini)
+                        let content = match encoding {
+                            crate::oto::OtoEncoding::Utf8 => String::from_utf8_lossy(&bytes).to_string(),
+                            crate::oto::OtoEncoding::ShiftJis => {
+                                let (res, _, _) = encoding_rs::SHIFT_JIS.decode(&bytes);
+                                res.to_string()
+                            }
+                            crate::oto::OtoEncoding::Gbk => {
+                                let (res, _, _) = encoding_rs::GBK.decode(&bytes);
+                                res.to_string()
+                            }
+                        };
+
+                        let mut name = String::new();
+                        let mut image = None;
+
+                        for line in content.lines() {
+                            let line = line.trim();
+                            if line.to_lowercase().starts_with("name=") {
+                                name = line[5..].to_string();
+                            } else if line.to_lowercase().starts_with("image=") {
+                                let img_name = line[6..].trim().to_string();
+                                if !img_name.is_empty() {
+                                    image = Some(current_dir.join(img_name));
+                                }
+                            }
+                        }
+                        
+                        // Search for readme/license in the same directory
+                        let mut readme = String::new();
+                        let mut license = String::new();
+                        
+                        let readme_files = ["readme.txt", "readme.html", "README.txt", "Readme.txt", "readme", "README"];
+                        let license_files = ["license.txt", "licence.txt", "LICENSE.txt", "license", "licence", "LICENSE"];
+                        
+                        for rf in readme_files {
+                            let rp = current_dir.join(rf);
+                            if rp.exists() {
+                                if let Ok(rb) = std::fs::read(&rp) {
+                                    readme = match encoding {
+                                        crate::oto::OtoEncoding::Utf8 => String::from_utf8_lossy(&rb).to_string(),
+                                        crate::oto::OtoEncoding::ShiftJis => encoding_rs::SHIFT_JIS.decode(&rb).0.to_string(),
+                                        crate::oto::OtoEncoding::Gbk => encoding_rs::GBK.decode(&rb).0.to_string(),
+                                    };
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        for lf in license_files {
+                            let lp = current_dir.join(lf);
+                            if lp.exists() {
+                                if let Ok(lb) = std::fs::read(&lp) {
+                                    license = match encoding {
+                                        crate::oto::OtoEncoding::Utf8 => String::from_utf8_lossy(&lb).to_string(),
+                                        crate::oto::OtoEncoding::ShiftJis => encoding_rs::SHIFT_JIS.decode(&lb).0.to_string(),
+                                        crate::oto::OtoEncoding::Gbk => encoding_rs::GBK.decode(&lb).0.to_string(),
+                                    };
+                                    break;
+                                }
+                            }
+                        }
+
+                        let tab = &mut self.tabs[tab_idx];
+                        tab.character_name = name;
+                        tab.character_image_path = image;
+                        tab.character_texture = None;
+                        tab.readme_text = readme;
+                        tab.license_text = license;
+                        return;
+                    }
+                }
+                
+                // Go up one level
+                if let Some(parent) = current_dir.parent() {
+                    current_dir = parent.to_path_buf();
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+
     pub fn load_oto(&mut self, path: PathBuf) {
         match parse_oto(&path) {
             Ok(parsed) => {
@@ -189,6 +285,7 @@ impl CopaibaApp {
                 if !self.cur().filtered.is_empty() {
                     self.select_multi(0, false, false);
                 }
+                self.load_character_metadata(self.current_tab);
                 self.status = format!("{} aliases carregados.", self.cur().entries.len());
                 self.save_prefs();
             }
@@ -204,6 +301,7 @@ impl CopaibaApp {
             (tab.oto_path.clone(), self.encoding)
         };
         if let Some(path) = path_opt {
+            let path: PathBuf = path; // Force PathBuf
             let res = {
                 let tab = self.cur();
                 save_oto(&tab.entries, &path, encoding)
@@ -249,6 +347,7 @@ impl CopaibaApp {
 
         if self.wav_cache.contains_key(&fname) { return; }
 
+        let dir_opt: Option<PathBuf> = dir_opt;
         if let Some(dir) = dir_opt {
             let wav_path = dir.join(&fname);
             match load_wav(&wav_path) {

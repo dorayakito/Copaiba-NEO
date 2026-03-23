@@ -4,7 +4,7 @@ use super::state::{CopaibaApp, ShortcutProfile};
 impl CopaibaApp {
     pub fn show_waveform_panel(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            let (has_entries, tab_selected, filtered_len) = {
+            let (has_entries, tab_selected, _filtered_len) = {
                 let tab = self.cur();
                 (tab.entries.len(), tab.selected, tab.filtered.len())
             };
@@ -101,6 +101,7 @@ impl CopaibaApp {
                                             if entry.cutoff < 0.0 { entry.cutoff += delta; }
                                         } else {
                                             entry.offset = new_off;
+                                            if entry.cutoff >= 0.0 { entry.cutoff = (entry.cutoff - delta).max(0.0); }
                                         }
                                         do_dirty = true;
                                     }
@@ -116,7 +117,7 @@ impl CopaibaApp {
                                             let old_off = entry.offset;
                                             entry.offset = (entry.offset + delta).max(0.0);
                                             let off_real_delta = entry.offset - old_off;
-                                            if entry.cutoff < 0.0 { entry.cutoff += off_real_delta; }
+                                            if entry.cutoff >= 0.0 { entry.cutoff = (entry.cutoff - off_real_delta).max(0.0); }
                                         } else {
                                             let p_ms = ms.max(entry.offset).min(curr_c_ms);
                                             entry.preutter = p_ms - entry.offset;

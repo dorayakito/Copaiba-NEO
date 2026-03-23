@@ -6,7 +6,7 @@ impl CopaibaApp {
             .resizable(true)
             .default_width(180.0)
             .show(ctx, |ui| {
-                egui::ScrollArea::vertical().id_source("tools_scroll").show(ui, |ui| {
+                egui::ScrollArea::vertical().id_salt("tools_scroll").show(ui, |ui| {
                     ui.add_space(8.0);
                     ui.heading("🛠️ Presets");
                     ui.separator();

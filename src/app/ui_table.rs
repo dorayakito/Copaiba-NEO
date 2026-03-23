@@ -110,7 +110,22 @@ impl CopaibaApp {
                                 row.col(|ui| { num_col!(ui, &mut entry.overlap, 4); });
                                 row.col(|ui| { num_col!(ui, &mut entry.preutter, 5); });
                                 row.col(|ui| { num_col!(ui, &mut entry.consonant, 6); });
-                                row.col(|ui| { num_col!(ui, &mut entry.cutoff, 7); });
+                                row.col(|ui| { 
+                                    num_col!(ui, &mut entry.cutoff, 7); 
+                                    ui.interact_bg(egui::Sense::click()).context_menu(|ui| {
+                                        if ui.button("Inverter Modo (Relativo/Absoluto)").clicked() {
+                                            if entry.cutoff < 0.0 {
+                                                // Convert to positive (relative to end) - approximate
+                                                entry.cutoff = 0.0; 
+                                            } else {
+                                                // Convert to negative (relative to offset)
+                                                entry.cutoff = -1.0;
+                                            }
+                                            tab.dirty = true;
+                                            ui.close_menu();
+                                        }
+                                    });
+                                });
 
                                 row.col(|ui| {
                                     let id = egui::Id::new(("cell", fi, 8));

@@ -25,6 +25,7 @@ fn main() -> eframe::Result {
         options,
         Box::new(|cc| {
             apply_dark_theme(&cc.egui_ctx);
+            setup_fonts(&cc.egui_ctx);
             let mut app = CopaibaApp::default();
             app.load_prefs();
             Ok(Box::new(app))
@@ -37,9 +38,11 @@ fn main() -> eframe::Result {
 fn setup_fonts(ctx: &egui::Context) {
     let mut fonts = egui::FontDefinitions::default();
     let system_fonts = [
-        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
         "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
         "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansCJK.ttc",
+        "/usr/share/fonts/opentype/noto/NotoSansCJK.ttc",
     ];
     let mut found = false;
     for path in system_fonts {
@@ -61,7 +64,6 @@ fn setup_fonts(ctx: &egui::Context) {
 impl eframe::App for CopaibaApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let now = ctx.input(|i| i.time);
-        if now < 0.1 { setup_fonts(ctx); }
         if self.session_start_time == 0.0 { self.session_start_time = now; }
 
         // Close confirmation
@@ -75,6 +77,7 @@ impl eframe::App for CopaibaApp {
         // ── Panels (order matters: top/bottom before central) ──────────────────
         self.show_menu_bar(ctx);
         self.show_tab_bar(ctx);
+        self.show_voicebank_header(ctx);
         self.show_alias_table(ctx);
         self.show_status_bar(ctx, now);
         self.show_tools_panel(ctx);

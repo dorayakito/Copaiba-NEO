@@ -1,5 +1,4 @@
-// oto.rs — Parser and serializer for oto.ini files
-use encoding_rs::SHIFT_JIS;
+
 use std::fs;
 use std::path::Path;
 
@@ -8,6 +7,7 @@ use std::path::Path;
 pub enum OtoEncoding {
     Utf8,
     ShiftJis,
+    Gbk,
 }
 
 /// One entry (alias) in an oto.ini file
@@ -66,8 +66,14 @@ pub fn parse_oto(path: &Path) -> Result<ParsedOto, String> {
             OtoEncoding::Utf8,
         )
     } else {
-        let (decoded, _, _) = SHIFT_JIS.decode(&bytes);
-        (decoded.into_owned(), OtoEncoding::ShiftJis)
+        // Try Shift-JIS first, then GBK
+        let (decoded_sjis, _, had_errors_sjis) = encoding_rs::SHIFT_JIS.decode(&bytes);
+        if !had_errors_sjis {
+            (decoded_sjis.into_owned(), OtoEncoding::ShiftJis)
+        } else {
+            let (decoded_gbk, _, _) = encoding_rs::GBK.decode(&bytes);
+            (decoded_gbk.into_owned(), OtoEncoding::Gbk)
+        }
     };
 
     let mut entries = Vec::new();
@@ -128,7 +134,11 @@ pub fn save_oto(entries: &[OtoEntry], path: &Path, encoding: OtoEncoding) -> Res
     let bytes: Vec<u8> = match encoding {
         OtoEncoding::Utf8 => text.into_bytes(),
         OtoEncoding::ShiftJis => {
-            let (encoded, _, _) = SHIFT_JIS.encode(&text);
+            let (encoded, _, _) = encoding_rs::SHIFT_JIS.encode(&text);
+            encoded.into_owned()
+        }
+        OtoEncoding::Gbk => {
+            let (encoded, _, _) = encoding_rs::GBK.encode(&text);
             encoded.into_owned()
         }
     };
