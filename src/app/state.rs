@@ -4,6 +4,8 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
 use serde::{Serialize, Deserialize};
 
+use egui_i18n::tr;
+
 use rodio::{OutputStream, OutputStreamHandle, Sink};
 
 use crate::audio::WavData;
@@ -38,7 +40,7 @@ pub struct TabState {
 impl Default for TabState {
     fn default() -> Self {
         Self {
-            name: "Novo Set".to_string(),
+            name: tr!("state.tab.default_name").to_string(),
             entries: Vec::new(),
             original_entries: Vec::new(),
             filtered: Vec::new(),
@@ -207,7 +209,7 @@ pub struct UiState {
 impl Default for UiState {
     fn default() -> Self {
         Self {
-            status: String::from("Abrir um arquivo oto.ini para começar."),
+            status: tr!("state.ui.status.ready").to_string(),
             show_exit_dialog: false,
             show_preset_editor: false,
             show_settings: false,

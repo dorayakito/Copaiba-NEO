@@ -7,8 +7,24 @@ btn.save_exit = Salvar e Sair
 btn.not_save_exit = Sair sem Salvar
 btn.exe = Executar
 btn.apply = Aplicar
+# Header
+header.voicebank = Voicebank
+header.pitch.label = Tom:
+header.resampler.select = Selecionar Resampler
+header.resampler.none = Nenhum
+header.resampler.test = Testar alias
+header.resampler.hover = Configure um resampler antes de testar!
+header.resampler.status = Configure um resampler primeiro!
+# Home
+home.title = Copaiba NEO
+home.subtitle = Editor de oto.ini
+home.btn.open_voicebank = Abrir Voicebank
+home.label.recent = Recentes
+home.btn.open = Abrir
+home.label.no_recent = Nenhum voicebank recente.
 # Menu - File
 menu.file = Arquivo
+menu.file.home = Tela Inicial
 menu.file.open.vb = Abrir Voicebank...
 menu.file.open.oto = Abrir oto.ini...
 menu.file.open.explorer = Abrir Pasta no Explorer
@@ -77,6 +93,8 @@ modal.settings.waveform.label.color = Cor do Waveform:
 modal.settings.waveform.label.positive = Positivo
 modal.settings.waveform.label.negative = Negativo
 modal.settings.waveform.label.spline = Linha Spline:
+modal.settings.encoding.heading = Codificação
+modal.settings.encoding.label = Encoding de texto:
 modal.settings.spectrogram.heading = Espectrograma
 modal.settings.spectrogram.ckb.hd = Habilitar Espectrograma HD
 modal.settings.spectrogram.label.fft_size = Tamanho da FFT:
@@ -167,6 +185,12 @@ recorder.label.no_alias = Nenhum alias selecionado na tabela.
 recorder.label.recording_at = Gravando a
 recorder.label.error_start_rec = Erro ao iniciar gravação:
 recorder.label.no_rec_save = Nenhuma gravação para salvar
+recorder.error.no_device = Nenhum dispositivo de entrada encontrado
+recorder.error.config = Falha ao obter config de entrada:
+recorder.error.sample_format = Formato de sample não suportado
+recorder.error.create_stream = Falha ao criar stream de entrada:
+recorder.error.play_stream = Falha ao iniciar stream:
+recorder.error.stream = Erro no stream:
 # Status
 status.label.new_file = Novo Arquivo
 status.label.line = Linha:
@@ -174,17 +198,17 @@ status.label.time_elapsed = Tempo de sessão:
 status.label.saved = Salvo!
 status.label.not_saved = Não salvo
 # Table
-table.label.param = Parâmetros
-table.label.param_alias = Aliases
-table.label.filter_alias = Filtrar Aliases...
-table.label.wav_file = Arquivo .wav
-table.label.alias = Alias (fonema)
-table.label.offset = Offset
-table.label.overlap = Overlap
-table.label.preutter = Preutterance
-table.label.consonant = Consonant
-table.label.cutoff = Cutoff
-table.label.notes = Anotações
+table.params = Parâmetros
+table.filter.hint = Filtrar aliases...
+table.cutoff.invert = Inverter Modo (Relativo/Absoluto)
+table.col.file = Arquivo .wav
+table.col.alias = Alias (fonema)
+table.col.offset = Offset
+table.col.overlap = Overlap
+table.col.preutter = Preutterance
+table.col.consonant = Consonant
+table.col.cutoff = Cutoff
+table.col.notes = Anotações
 # Tabs
 tabs.btn.new_tab = Nova Aba
 tabs.btn.close_tab = Fechar Aba
@@ -204,3 +228,20 @@ tools.label.zoom_desc = Não reseta zoom ao trocar alias
 tools.label.status = Status
 tools.label.aliases = Aliases:
 tools.label.filtered = Filtrados:
+# Audio
+audio.error.no_device = Erro: Dispositivo de áudio não encontrado.
+audio.resampler.select_file = Escolher resampler.exe
+audio.resampler.status.resampling = Resampling...
+audio.resampler.status.success = Resample OK:
+audio.resampler.status.load_error = Erro ao carregar resampler:
+audio.resampler.status.error = Resampler erro:
+audio.resampler.status.exec_error = Erro ao executar resampler:
+# File Ops
+file_ops.status.aliases_loaded = aliases carregados.
+file_ops.status.open_error = Erro ao abrir:
+file_ops.status.saved_success = Salvo com sucesso.
+file_ops.status.save_error = Erro ao salvar:
+file_ops.label.new_set = Novo Set
+# State
+state.tab.default_name = Novo Set
+state.ui.status.ready = Abrir um arquivo oto.ini para começar.
