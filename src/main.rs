@@ -1,4 +1,4 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod app;
 mod audio;
@@ -13,6 +13,7 @@ use egui::{Color32, Stroke, Vec2};
 use app::CopaibaApp;
 
 fn main() -> eframe::Result {
+    println!("Starting Copaiba NEO...");
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("Copaiba NEO")
@@ -20,13 +21,18 @@ fn main() -> eframe::Result {
             .with_min_inner_size([800.0, 500.0]),
         ..Default::default()
     };
+    println!("Options initialized. Running native...");
     eframe::run_native(
         "Copaiba NEO",
         options,
         Box::new(|cc| {
+            println!("Applying theme...");
             apply_dark_theme(&cc.egui_ctx);
+            println!("Initializing app...");
             let mut app = CopaibaApp::default();
+            println!("Loading preferences...");
             app.load_prefs();
+            println!("App started!");
             Ok(Box::new(app))
         }),
     )
@@ -35,6 +41,7 @@ fn main() -> eframe::Result {
 // ── Font setup ────────────────────────────────────────────────────────────────
 
 fn setup_fonts(ctx: &egui::Context) {
+    println!("Setting up fonts...");
     let mut fonts = egui::FontDefinitions::default();
     let system_fonts = [
         "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
@@ -60,8 +67,13 @@ fn setup_fonts(ctx: &egui::Context) {
 
 impl eframe::App for CopaibaApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        use std::io::Write;
         let now = ctx.input(|i| i.time);
-        if now < 0.1 { setup_fonts(ctx); }
+        if self.session_start_time == 0.0 {
+            print!("First frame at time: {}\n", now);
+            let _ = std::io::stdout().flush();
+        }
+        // if now < 0.1 { setup_fonts(ctx); }
         if self.session_start_time == 0.0 { self.session_start_time = now; }
 
         // Close confirmation
