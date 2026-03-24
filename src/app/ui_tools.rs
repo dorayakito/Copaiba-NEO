@@ -47,7 +47,7 @@ impl CopaibaApp {
                         ui.checkbox(&mut tab.wave_view.srna, "SRnA (Shift+2)");
                         ui.label(egui::RichText::new("Fixa marcadores ao mover Offset").small());
                         ui.add_space(8.0);
-                        ui.checkbox(&mut tab.wave_view.snap_to_peaks, "Auto-oto [Canário]");
+                        ui.checkbox(&mut tab.wave_view.snap_to_peaks, "Auto-oto [WIP/OFF]");
                         ui.label(egui::RichText::new("Atrai marcadores para picos").small());
                     }
                     ui.add_space(8.0);

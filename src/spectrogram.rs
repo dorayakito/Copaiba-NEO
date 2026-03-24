@@ -1,7 +1,7 @@
-// spectrogram.rs — Pixel-perfect spectrogram rendering
+use serde::{Serialize, Deserialize};
 
 /// All user-configurable rendering parameters
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SpectrogramSettings {
     pub fft_size: usize,       // 512, 1024, 2048, 4096, 8192
     pub hop_size: usize,       // 64, 128, 256, 512
@@ -13,7 +13,7 @@ pub struct SpectrogramSettings {
     pub adaptive_norm: bool,   // per-column normalization vs global
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ColormapKind {
     Fire,
     Inferno,

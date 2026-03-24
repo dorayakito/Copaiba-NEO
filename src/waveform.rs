@@ -1,10 +1,11 @@
+use serde::{Serialize, Deserialize};
 use egui::{Color32, Pos2, Rect, Sense, Stroke, Ui, pos2};
 
 use crate::audio::WavData;
 use crate::oto::OtoEntry;
 use crate::spectrogram::{SpectrogramData, SpectrogramSettings, render_spectrogram_view};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum WaveformRenderMode {
     Auto,           // Spline if zoomed in, blocks if out
     AlwaysSpline,
@@ -20,7 +21,7 @@ pub struct InteractionResult {
     pub nav_delta: i32,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WaveformSettings {
     pub top_color: egui::Color32,
     pub bot_color: egui::Color32,
@@ -821,8 +822,9 @@ pub fn draw_waveform(
         let col   = color_for(*target);
         let width = if view.drag_target == *target { 2.5 } else { 1.5 };
         
+        let bottom_limit = if view.show_minimap { mini_outer_rect.top() } else { rect.bottom() };
         painter.line_segment(
-            [Pos2::new(x, rect.top()), Pos2::new(x, mini_outer_rect.top())],
+            [Pos2::new(x, rect.top()), Pos2::new(x, bottom_limit)],
             Stroke::new(width, col),
         );
 

@@ -6,6 +6,8 @@ impl CopaibaApp {
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("Arquivo", |ui| {
+                    if ui.button("🏠 Tela Inicial").clicked() { self.ui.show_home = true; ui.close_menu(); }
+                    ui.separator();
                     if ui.button("📁 Abrir Voicebank...\tCtrl+O").clicked() { self.open_voicebank_dir(); ui.close_menu(); }
                     if ui.button("📄 Abrir oto.ini...\tCtrl+O").clicked() { self.open_oto(); ui.close_menu(); }
                     ui.separator();
@@ -31,7 +33,7 @@ impl CopaibaApp {
 
                     let tab = self.cur_mut();
                     let mut snap = tab.wave_view.snap_to_peaks;
-                    if ui.checkbox(&mut snap, "🪄 Auto-oto [Canário]")
+                    if ui.checkbox(&mut snap, "🪄 Auto-oto [WIP/OFF]")
                         .on_hover_text("Ajusta automaticamente os limites baseando-se nos picos de energia")
                         .changed()
                     {
@@ -61,7 +63,6 @@ impl CopaibaApp {
                     ui.checkbox(&mut self.visual.show_spectrogram, "Espectrograma");
                     ui.checkbox(&mut self.visual.show_minimap, "Minimapa");
                     ui.separator();
-                    ui.checkbox(&mut self.config.play_on_select, "Tocar ao selecionar");
                     ui.checkbox(&mut self.ui.auto_scroll_to_selected, "Auto-scroll para selecionado");
                     ui.separator();
                     if ui.button("Redefinir visualizações").clicked() {

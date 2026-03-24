@@ -27,13 +27,17 @@ impl CopaibaApp {
         }
 
         egui::TopBottomPanel::top("voicebank_header").show(ctx, |ui| {
-            let tab = &self.tabs[tab_idx];
+            let (char_tex, char_name, oto_dir, readme, license) = {
+                let tab = &self.tabs[tab_idx];
+                (tab.character_texture.as_ref().map(|t| t.id()), tab.character_name.clone(), tab.oto_dir.clone(), tab.readme_text.clone(), tab.license_text.clone())
+            };
+
             ui.add_space(4.0);
             ui.horizontal(|ui| {
                 // Character Image (50x50)
                 let (rect, _resp) = ui.allocate_at_least(Vec2::new(50.0, 50.0), egui::Sense::hover());
-                if let Some(texture) = &tab.character_texture {
-                    ui.painter().image(texture.id(), rect, egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)), Color32::WHITE);
+                if let Some(tex_id) = char_tex {
+                    ui.painter().image(tex_id, rect, egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)), Color32::WHITE);
                 } else {
                     ui.painter().rect_filled(rect, 6.0, Color32::from_rgb(30, 30, 46));
                     ui.painter().text(rect.center(), egui::Align2::CENTER_CENTER, "👤", egui::FontId::proportional(24.0), Color32::GRAY);
@@ -42,32 +46,31 @@ impl CopaibaApp {
                 ui.add_space(8.0);
 
                 ui.vertical(|ui| {
-                    let name = if tab.character_name.is_empty() {
-                        let vb_name = tab.oto_dir.as_ref()
+                    let name = if char_name.is_empty() {
+                        oto_dir.as_ref()
                             .and_then(|p: &PathBuf| p.file_name())
                             .map(|s: &std::ffi::OsStr| s.to_string_lossy().to_string())
-                            .unwrap_or_else(|| "Voicebank".to_string());
-                        vb_name
+                            .unwrap_or_else(|| "Voicebank".to_string())
                     } else { 
-                        tab.character_name.clone() 
+                        char_name
                     };
                     ui.label(RichText::new(name).strong().size(16.0));
-                    ui.label(RichText::new(tab.oto_dir.as_ref().map(|p: &PathBuf| p.to_string_lossy().to_string()).unwrap_or_default()).color(ui.visuals().weak_text_color()).size(9.0));
+                    ui.label(RichText::new(oto_dir.as_ref().map(|p: &PathBuf| p.to_string_lossy().to_string()).unwrap_or_default()).color(ui.visuals().weak_text_color()).size(9.0));
                 });
 
                 ui.add_space(16.0);
 
                 // Readme / License preview
-                if !tab.readme_text.is_empty() || !tab.license_text.is_empty() {
+                if !readme.is_empty() || !license.is_empty() {
                     ui.vertical(|ui| {
                         ui.set_max_width(300.0);
                         egui::ScrollArea::vertical().max_height(45.0).show(ui, |ui| {
-                            if !tab.readme_text.is_empty() {
-                                ui.label(RichText::new(&tab.readme_text).size(10.0).color(Color32::from_rgb(200, 200, 220)));
+                            if !readme.is_empty() {
+                                ui.label(RichText::new(&readme).size(10.0).color(Color32::from_rgb(200, 200, 220)));
                             }
-                            if !tab.license_text.is_empty() {
+                            if !license.is_empty() {
                                 ui.separator();
-                                ui.label(RichText::new(format!("⚖ {}", tab.license_text)).size(10.0).color(Color32::from_rgb(150, 200, 150)));
+                                ui.label(RichText::new(format!("⚖ {}", license)).size(10.0).color(Color32::from_rgb(150, 200, 150)));
                             }
                         });
                     });
@@ -111,6 +114,20 @@ impl CopaibaApp {
                         ui.label(RichText::new(res.file_name().unwrap_or_default().to_string_lossy()).size(10.0).color(ui.visuals().weak_text_color()));
                     } else {
                         ui.label(RichText::new("Nenhum").size(10.0).color(Color32::from_rgb(243, 139, 168)));
+                    }
+
+                    ui.separator();
+                    let has_resampler = self.config.resampler_path.is_some();
+                    let mut btn = ui.button(RichText::new("🧪 Testar alias").strong());
+                    if !has_resampler {
+                        btn = btn.on_hover_text("⚠️ Configure um resampler antes de testar!");
+                    }
+                    if btn.clicked() {
+                        if has_resampler {
+                            self.resample_current();
+                        } else {
+                            self.ui.status = "⚠️ Configure um resampler primeiro!".to_string();
+                        }
                     }
                 });
             });

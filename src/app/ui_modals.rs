@@ -150,7 +150,7 @@ impl CopaibaApp {
                         }
                     });
                     ui.horizontal(|ui| {
-                        ui.label("Freq vín (Hz):");
+                        ui.label("Freq min (Hz):");
                         if ui.add(egui::DragValue::new(&mut self.visual.spec.min_freq).speed(5.0).range(1.0..=5000.0).suffix(" Hz")).changed() { render_changed = true; }
                     });
                     ui.horizontal(|ui| {
@@ -232,7 +232,7 @@ impl CopaibaApp {
     fn modal_batch_rename(&mut self, ctx: &egui::Context) {
         if !self.ui.show_batch_rename { return; }
         let mut open = true;
-        egui::Window::new("📝 Renomear em Massa (Enxertia)")
+        egui::Window::new("📝 Renomear em Massa")
             .open(&mut open)
             .collapsible(false)
             .resizable(false)

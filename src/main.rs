@@ -16,8 +16,9 @@ fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("Copaiba NEO")
-            .with_inner_size([1280.0, 720.0])
-            .with_min_inner_size([800.0, 500.0]),
+            .with_inner_size([1400.0, 860.0])
+            .with_min_inner_size([800.0, 500.0])
+            .with_maximized(true),
         ..Default::default()
     };
     eframe::run_native(
@@ -76,17 +77,23 @@ impl eframe::App for CopaibaApp {
 
         // ── Panels (order matters: top/bottom before central) ──────────────────
         self.show_menu_bar(ctx);
-        self.show_tab_bar(ctx);
-        self.show_voicebank_header(ctx);
-        self.show_alias_table(ctx);
+        if !self.ui.show_home {
+            self.show_tab_bar(ctx);
+            self.show_voicebank_header(ctx);
+            self.show_alias_table(ctx);
+            self.show_tools_panel(ctx);
+        }
         self.show_status_bar(ctx, now);
-        self.show_tools_panel(ctx);
 
         // ── Keyboard shortcuts (before waveform to avoid consuming events) ─────
         self.handle_shortcuts(ctx);
 
-        // ── Central waveform panel ─────────────────────────────────────────────
-        self.show_waveform_panel(ctx);
+        // ── Central waveform panel / Home Screen ─────────────────────────────
+        if self.ui.show_home {
+            self.show_home_screen(ctx);
+        } else {
+            self.show_waveform_panel(ctx);
+        }
 
         // ── Modal windows ──────────────────────────────────────────────────────
         self.show_modals(ctx);

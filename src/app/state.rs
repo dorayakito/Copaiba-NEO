@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
+use serde::{Serialize, Deserialize};
 
 use rodio::{OutputStream, OutputStreamHandle, Sink};
 
@@ -70,7 +71,14 @@ pub struct Preset {
     pub overlap: f64,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Serialize, Deserialize)]
+pub struct RecentVoicebank {
+    pub name: String,
+    pub path: PathBuf,
+    pub image_path: Option<PathBuf>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum ShortcutProfile {
     #[default]
     Copaiba,
@@ -80,7 +88,7 @@ pub enum ShortcutProfile {
     Custom,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct CustomShortcuts {
     pub play: String,
     pub stop: String,
@@ -147,6 +155,7 @@ impl Default for AudioState {
     }
 }
 
+#[derive(Clone, Serialize, Deserialize)]
 pub struct VisualSettings {
     pub spec: SpectrogramSettings,
     pub wave: WaveformSettings,
@@ -192,6 +201,7 @@ pub struct UiState {
     
     // Recorder
     pub show_recorder: bool,
+    pub show_home: bool,
 }
 
 impl Default for UiState {
@@ -215,10 +225,12 @@ impl Default for UiState {
             consistency_issues: Vec::new(),
             duplicate_results: Vec::new(),
             show_recorder: false,
+            show_home: true,
         }
     }
 }
 
+#[derive(Clone, Serialize, Deserialize)]
 pub struct AppConfig {
     pub shortcut_profile: ShortcutProfile,
     pub custom_shorts: CustomShortcuts,
@@ -228,6 +240,7 @@ pub struct AppConfig {
     pub test_duration_ms: f64,
     pub test_pitch: String,
     pub resampler_path: Option<PathBuf>,
+    pub recent_voicebanks: Vec<RecentVoicebank>,
 }
 
 impl Default for AppConfig {
@@ -252,6 +265,7 @@ impl Default for AppConfig {
             test_duration_ms: 500.0,
             test_pitch: "C4".to_string(),
             resampler_path: None,
+            recent_voicebanks: Vec::new(),
         }
     }
 }

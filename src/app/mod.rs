@@ -12,5 +12,6 @@ mod ui_header;
 pub mod ui_modals;
 pub mod recorder;
 pub mod ui_recorder;
+pub mod ui_home;
 
 pub use state::CopaibaApp;

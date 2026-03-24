@@ -1,9 +1,9 @@
-
+use serde::{Serialize, Deserialize};
 use std::fs;
 use std::path::Path;
 
 /// Detected encoding of the oto.ini file
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum OtoEncoding {
     Utf8,
     ShiftJis,
@@ -11,7 +11,7 @@ pub enum OtoEncoding {
 }
 
 /// One entry (alias) in an oto.ini file
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct OtoEntry {
     pub filename: String, // e.g. "あ.wav"
     pub alias: String,    // e.g. "- あ"
@@ -58,7 +58,7 @@ pub struct ParsedOto {
 /// Parse an oto.ini file from disk.
 /// Tries UTF-8 first; falls back to Shift-JIS.
 pub fn parse_oto(path: &Path) -> Result<ParsedOto, String> {
-    let bytes = fs::read(path).map_err(|e| e.to_string())?;
+    let bytes = fs::read(path).map_err(|e: std::io::Error| e.to_string())?;
 
     let (text, encoding) = if std::str::from_utf8(&bytes).is_ok() {
         (
@@ -142,5 +142,5 @@ pub fn save_oto(entries: &[OtoEntry], path: &Path, encoding: OtoEncoding) -> Res
         }
     };
 
-    fs::write(path, final_bytes).map_err(|e| e.to_string())
+    fs::write(path, final_bytes).map_err(|e: std::io::Error| e.to_string())
 }

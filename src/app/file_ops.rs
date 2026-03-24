@@ -1,9 +1,17 @@
 use std::path::{Path, PathBuf};
+use serde::{Serialize, Deserialize};
 
 use crate::audio::load_wav;
 use crate::oto::{parse_oto, save_oto};
 use crate::waveform::WaveformView;
 use super::state::{CopaibaApp, TabState};
+
+#[derive(Serialize, Deserialize)]
+struct PersistedPrefs {
+    pub last_oto_path: Option<PathBuf>,
+    pub visual: crate::app::state::VisualSettings,
+    pub config: crate::app::state::AppConfig,
+}
 
 impl CopaibaApp {
     pub fn get_prefs_path() -> PathBuf {
@@ -18,20 +26,28 @@ impl CopaibaApp {
 
     pub fn load_prefs(&mut self) {
         if let Ok(content) = std::fs::read_to_string(Self::get_prefs_path()) {
-            if let Some(line) = content.lines().next() {
-                if !line.trim().is_empty() {
+            if let Ok(prefs) = serde_json::from_str::<PersistedPrefs>(&content) {
+                self.visual = prefs.visual;
+                self.config = prefs.config;
+                // Consistency: don't auto-load the last project, let user pick from Home Screen
+            } else {
+                // Fallback for old format
+                if let Some(line) = content.lines().next() {
                     let path = PathBuf::from(line.trim());
-                    if path.exists() {
-                        self.load_oto(path);
-                    }
+                    if path.exists() { self.load_oto(path); }
                 }
             }
         }
     }
 
     pub fn save_prefs(&self) {
-        if let Some(ref p) = self.cur().oto_path {
-            let _ = std::fs::write(Self::get_prefs_path(), p.display().to_string());
+        let prefs = PersistedPrefs {
+            last_oto_path: self.cur().oto_path.clone(),
+            visual: self.visual.clone(),
+            config: self.config.clone(),
+        };
+        if let Ok(json) = serde_json::to_string_pretty(&prefs) {
+            let _ = std::fs::write(Self::get_prefs_path(), json);
         }
     }
 
@@ -89,8 +105,10 @@ impl CopaibaApp {
                 }
                 self.rebuild_filter();
                 self.ensure_wav_loaded();
+                self.ui.show_home = false;
                 for i in 0..self.tabs.len() {
                     self.load_character_metadata(i);
+                    self.add_to_recent(i);
                 }
             } else {
                 // FALLBACK: no oto.ini → create from .wav files
@@ -136,10 +154,38 @@ impl CopaibaApp {
                         self.tabs.push(new_tab);
                         self.current_tab = self.tabs.len() - 1;
                     }
+                    self.ui.show_home = false;
                     self.rebuild_filter();
                     self.ensure_wav_loaded();
+                    self.add_to_recent(self.current_tab);
                 }
             }
+        }
+    }
+
+    pub fn add_to_recent(&mut self, tab_idx: usize) {
+        let tab = &self.tabs[tab_idx];
+        if let Some(path) = &tab.oto_path {
+            let name = tab.character_name.clone();
+            let name = if name.is_empty() { tab.name.clone() } else { name };
+            
+            let mut recent = crate::app::state::RecentVoicebank {
+                name,
+                path: path.clone(),
+                image_path: tab.character_image_path.clone(),
+            };
+
+            // Remove if already exists (same path)
+            self.config.recent_voicebanks.retain(|r| r.path != *path);
+            
+            // Insert at front
+            self.config.recent_voicebanks.insert(0, recent);
+            
+            // Limit to 20
+            if self.config.recent_voicebanks.len() > 20 {
+                self.config.recent_voicebanks.pop();
+            }
+            self.save_prefs();
         }
     }
 
