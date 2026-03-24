@@ -1,0 +1,73 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libx11-dev libxcb1-dev libxcursor-dev libxrandr-dev libxi-dev libasound2-dev libvulkan-dev pkg-config
+    - name: Build
+      run: cargo build --release
+    - name: Prepare AppImage metadata
+      run: |
+        mkdir -p AppDir/usr/bin
+        cp target/release/copaiba_neo AppDir/usr/bin/
+        
+        # Cria um ícone SVG vazio/invisível para enganar o empacotador do Linux
+        echo '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="transparent"/></svg>' > AppDir/icon.svg
+        
+        cat > AppDir/copaiba_neo.desktop <<EOF
+        [Desktop Entry]
+        Type=Application
+        Name=Copaiba NEO
+        Exec=copaiba_neo
+        Icon=icon
+        Categories=AudioVideo;Audio;
+        EOF
+    - name: Generate AppImage
+      run: |
+        wget -O linuxdeploy-x86_64.AppImage https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+        chmod +x linuxdeploy-x86_64.AppImage
+        export ARCH=x86_64
+        export APPIMAGE_EXTRACT_AND_RUN=1
+        ./linuxdeploy-x86_64.AppImage --appdir AppDir --output appimage
+    - name: Upload Linux Binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: copaiba_neo-linux-x64
+        path: target/release/copaiba_neo
+    - name: Upload AppImage
+      uses: actions/upload-artifact@v4
+      with:
+        name: copaiba_neo-appimage
+        path: "*.AppImage"
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Cria um .ico transparente para satisfazer o arquivo build.rs do seu projeto
+    - name: Create Dummy Icon for build.rs
+      run: |
+        choco install imagemagick
+        magick -size 256x256 xc:transparent icon.ico
+        
+    - name: Build
+      run: cargo build --release
+      
+    - name: Upload Windows Binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: copaiba_neo-windows-x64
+        path: target/release/copaiba_neo.exe

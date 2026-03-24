@@ -8,8 +8,10 @@ pub mod ui_table;
 pub mod ui_tools;
 pub mod ui_waveform;
 pub mod ui_status;
+mod ui_header;
 pub mod ui_modals;
 pub mod recorder;
 pub mod ui_recorder;
+pub mod ui_home;
 
-pub use state::{CopaibaApp, TabState, Preset, ShortcutProfile, CustomShortcuts};
+pub use state::CopaibaApp;

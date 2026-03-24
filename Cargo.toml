@@ -1,18 +1,19 @@
 [package]
-name = "copaiba_mini"
+name = "copaiba_neo"
 version = "0.1.0"
 edition = "2021"
-description = "Copaiba Mini — Lite oto.ini editor for UTAU/OpenUTAU"
+description = "Copaiba NEO — oto.ini editor for UTAU/OpenUTAU"
 license = "MIT"
 
 [[bin]]
-name = "copaiba_mini"
+name = "copaiba_neo"
 path = "src/main.rs"
 
 [dependencies]
-eframe = { version = "0.31", features = ["default"] }
-egui = "0.31"
-egui_extras = "0.31"
+eframe = { version = "0.31", features = ["default", "persistence"] }
+egui = { version = "0.31", features = ["serde"] }
+egui_extras = { version = "0.31", features = ["default", "image", "svg", "serde"] }
+image = "0.25"
 hound = "3.5"
 encoding_rs = "0.8"
 rfd = "0.15"
@@ -22,6 +23,12 @@ realfft = "3.5.0"
 regex = "1.12.3"
 egui_plot = "0.31"
 cpal = "0.15"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+egui-i18n = "0.2.0"
+
+[build-dependencies]
+winres = "0.1"
 
 [profile.release]
 opt-level = 3

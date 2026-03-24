@@ -1,0 +1,126 @@
+name: Notificações do Bidu
+
+on:
+  push:
+  pull_request:
+    types: [opened, closed, reopened, synchronize]
+  issues:
+    types: [opened, closed, reopened, edited, deleted]
+  issue_comment:
+    types: [created, edited, deleted]
+  release:
+    types: [published, edited]
+  create:
+  delete:
+  gollum:
+
+jobs:
+  notificar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Identificar evento e avisar o Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          EVENT_NAME="${{ github.event_name }}"
+          REPO="${{ github.repository }}"
+          ACTOR="${{ github.actor }}"
+          
+          # Formato Padrão (Coringa)
+          TITLE="🔔 Nova modificação em $REPO"
+          DESC="Ação realizada por **$ACTOR**."$'\n'"Evento detectado: \`$EVENT_NAME\`."
+          COLOR=8421504
+          
+          # 1. Commits (Push e Merges)
+          if [ "$EVENT_NAME" == "push" ]; then
+            URL="${{ github.event.compare }}"
+            TITLE="📦 Novo push em $REPO"
+            COLOR=3447003
+            
+            # Extração DUPLA e blindada de arquivos (resolve falhas do jq)
+            FILES_COMMITS=$(jq -r '.commits[]? | .modified[]?, .added[]?, .removed[]?' "$GITHUB_EVENT_PATH" 2>/dev/null || true)
+            FILES_HEAD=$(jq -r '.head_commit? | .modified[]?, .added[]?, .removed[]?' "$GITHUB_EVENT_PATH" 2>/dev/null || true)
+            
+            # Junta as listas, limpa falhas (null) e remove duplicatas
+            FILES=$(printf "%s\n%s" "$FILES_COMMITS" "$FILES_HEAD" | sed '/^null$/d' | sed '/^$/d' | sort -u || true)
+            
+            if [ -z "$FILES" ]; then
+              FILE_TEXT="*Nenhum arquivo detalhado no payload do GitHub.*"
+            else
+              TOTAL=$(echo "$FILES" | wc -l)
+              FILE_TEXT=$(echo "$FILES" | head -n 5 | awk '{print "- `"$0"`"}')
+              if [ "$TOTAL" -gt 5 ]; then
+                REMAINING=$((TOTAL - 5))
+                FILE_TEXT=$(printf "%s\n*...e mais %d arquivo(s)*" "$FILE_TEXT" "$REMAINING")
+              fi
+            fi
+            
+            DESC=$(printf "Autoria de **%s**.\n\n**Arquivos alterados:**\n%s\n\n[Comparar alterações](%s)" "$ACTOR" "$FILE_TEXT" "$URL")
+            
+          # 2. Pull Requests
+          elif [ "$EVENT_NAME" == "pull_request" ]; then
+            ACTION=$(jq -r '.action' "$GITHUB_EVENT_PATH")
+            PR_TITLE=$(jq -r '.pull_request.title' "$GITHUB_EVENT_PATH")
+            URL=$(jq -r '.pull_request.html_url' "$GITHUB_EVENT_PATH")
+            TITLE="🔀 Pull Request $ACTION em $REPO"
+            DESC=$(printf "Autoria de **%s**.\n**Título:** %s\n\n[Ver Pull Request](%s)" "$ACTOR" "$PR_TITLE" "$URL")
+            COLOR=5763719
+            
+          # 3. Issues
+          elif [ "$EVENT_NAME" == "issues" ]; then
+            ACTION=$(jq -r '.action' "$GITHUB_EVENT_PATH")
+            ISSUE_TITLE=$(jq -r '.issue.title' "$GITHUB_EVENT_PATH")
+            URL=$(jq -r '.issue.html_url' "$GITHUB_EVENT_PATH")
+            TITLE="🚨 Issue $ACTION em $REPO"
+            DESC=$(printf "Autoria de **%s**.\n**Título:** %s\n\n[Ver Issue](%s)" "$ACTOR" "$ISSUE_TITLE" "$URL")
+            COLOR=16753920
+            
+          # 4. Comentários
+          elif [ "$EVENT_NAME" == "issue_comment" ]; then
+            ACTION=$(jq -r '.action' "$GITHUB_EVENT_PATH")
+            URL=$(jq -r '.comment.html_url' "$GITHUB_EVENT_PATH")
+            TITLE="💬 Comentário $ACTION em $REPO"
+            DESC=$(printf "**%s** modificou um comentário em uma Issue ou Pull Request.\n\n[Ir para o comentário](%s)" "$ACTOR" "$URL")
+            COLOR=16776960
+            
+          # 5. Releases
+          elif [ "$EVENT_NAME" == "release" ]; then
+            ACTION=$(jq -r '.action' "$GITHUB_EVENT_PATH")
+            RELEASE_NAME=$(jq -r '.release.name' "$GITHUB_EVENT_PATH")
+            URL=$(jq -r '.release.html_url' "$GITHUB_EVENT_PATH")
+            TITLE="🚀 Release $ACTION em $REPO"
+            DESC=$(printf "**%s** mexeu na versão: **%s**.\n\n[Ver Release](%s)" "$ACTOR" "$RELEASE_NAME" "$URL")
+            COLOR=15105570
+            
+          # 6. Criação de Branches/Tags
+          elif [ "$EVENT_NAME" == "create" ]; then
+            REF_TYPE=$(jq -r '.ref_type' "$GITHUB_EVENT_PATH")
+            REF=$(jq -r '.ref' "$GITHUB_EVENT_PATH")
+            TITLE="🌱 Nova $REF_TYPE criada"
+            DESC=$(printf "**%s** criou a %s \`%s\` no repositório." "$ACTOR" "$REF_TYPE" "$REF")
+            COLOR=5763719
+            
+          # 7. Exclusão de Branches/Tags
+          elif [ "$EVENT_NAME" == "delete" ]; then
+            REF_TYPE=$(jq -r '.ref_type' "$GITHUB_EVENT_PATH")
+            REF=$(jq -r '.ref' "$GITHUB_EVENT_PATH")
+            TITLE="🗑️ $REF_TYPE deletada"
+            DESC=$(printf "**%s** deletou a %s \`%s\` do repositório." "$ACTOR" "$REF_TYPE" "$REF")
+            COLOR=15548997
+          fi
+          
+          # Montagem segura do JSON
+          JSON_PAYLOAD=$(jq -n \
+            --arg title "$TITLE" \
+            --arg desc "$DESC" \
+            --argjson color "$COLOR" \
+            '{
+              embeds: [{
+                title: $title,
+                description: $desc,
+                color: $color
+              }]
+            }' \
+          )
+          
+          curl -H "Content-Type: application/json" -d "$JSON_PAYLOAD" "$DISCORD_WEBHOOK"
