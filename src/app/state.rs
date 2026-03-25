@@ -27,6 +27,7 @@ pub struct TabState {
     pub character_name: String,
     pub character_image_path: Option<PathBuf>,
     pub character_texture: Option<egui::TextureHandle>,
+    pub root_path: Option<PathBuf>,
     pub readme_text: String,
     pub license_text: String,
     pub dirty: bool,
@@ -51,6 +52,7 @@ impl Default for TabState {
             character_name: String::new(),
             character_image_path: None,
             character_texture: None,
+            root_path: None,
             readme_text: String::new(),
             license_text: String::new(),
             dirty: false,
@@ -77,6 +79,7 @@ pub struct Preset {
 pub struct RecentVoicebank {
     pub name: String,
     pub path: PathBuf,
+    pub root_path: Option<PathBuf>,
     pub image_path: Option<PathBuf>,
 }
 
@@ -136,6 +139,10 @@ pub struct AudioState {
     pub recorder_stream: Option<cpal::Stream>,
     pub recorded_wav: Option<WavData>,
     pub recorder_sample_rate: u32,
+
+    // UI Sounds
+    pub ui_sink: Option<Arc<Sink>>,
+    pub ui_sounds: HashMap<String, WavData>,
 }
 
 impl Default for AudioState {
@@ -153,6 +160,8 @@ impl Default for AudioState {
             recorder_stream: None,
             recorded_wav: None,
             recorder_sample_rate: 44100,
+            ui_sink: None,
+            ui_sounds: HashMap::new(),
         }
     }
 }
@@ -204,6 +213,14 @@ pub struct UiState {
     // Recorder
     pub show_recorder: bool,
     pub show_home: bool,
+    pub key_sound_idx: usize,
+    
+    // Splash
+    pub show_splash: bool,
+    pub splash_progress: f32,
+    
+    pub show_readme: bool,
+    pub show_license: bool,
 }
 
 impl Default for UiState {
@@ -228,6 +245,11 @@ impl Default for UiState {
             duplicate_results: Vec::new(),
             show_recorder: false,
             show_home: true,
+            key_sound_idx: 0,
+            show_splash: true,
+            splash_progress: 0.0,
+            show_readme: false,
+            show_license: false,
         }
     }
 }
@@ -244,6 +266,7 @@ pub struct AppConfig {
     pub test_pitch: String,
     pub resampler_path: Option<PathBuf>,
     pub recent_voicebanks: Vec<RecentVoicebank>,
+    pub play_ui_sounds: bool,
 }
 
 impl Default for AppConfig {
@@ -266,10 +289,11 @@ impl Default for AppConfig {
             play_on_select: false,
             auto_save_enabled: false,
             auto_save_interval_mins: 5,
-            test_duration_ms: 500.0,
+            test_duration_ms: 350.0,
             test_pitch: "C4".to_string(),
             resampler_path: None,
             recent_voicebanks: Vec::new(),
+            play_ui_sounds: true,
         }
     }
 }

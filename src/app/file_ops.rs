@@ -16,17 +16,27 @@ struct PersistedPrefs {
 
 impl CopaibaApp {
     pub fn get_prefs_path() -> PathBuf {
+        // Prefer APPDATA on Windows
+        if cfg!(target_os = "windows") {
+            if let Ok(appdata) = std::env::var("APPDATA") {
+                return PathBuf::from(appdata).join("copaiba_prefs.json");
+            }
+        }
+        
         if let Ok(home) = std::env::var("HOME") {
-            PathBuf::from(home).join(".copaiba_prefs.txt")
-        } else if let Ok(appdata) = std::env::var("APPDATA") {
-            PathBuf::from(appdata).join(".copaiba_prefs.txt")
+            PathBuf::from(home).join(".copaiba_prefs.json")
         } else {
-            PathBuf::from(".copaiba_prefs.txt")
+            PathBuf::from("copaiba_prefs.json")
         }
     }
 
     pub fn load_prefs(&mut self) {
-        if let Ok(content) = std::fs::read_to_string(Self::get_prefs_path()) {
+        let path = Self::get_prefs_path();
+        // Try .json first, then fallback to .txt
+        let content = std::fs::read_to_string(&path)
+            .or_else(|_| std::fs::read_to_string(path.with_extension("txt")));
+
+        if let Ok(content) = content {
             if let Ok(prefs) = serde_json::from_str::<PersistedPrefs>(&content) {
                 self.visual = prefs.visual;
                 self.config = prefs.config;
@@ -165,29 +175,42 @@ impl CopaibaApp {
     }
 
     pub fn add_to_recent(&mut self, tab_idx: usize) {
-        let tab = &self.tabs[tab_idx];
-        if let Some(path) = &tab.oto_path {
-            let name = tab.character_name.clone();
-            let name = if name.is_empty() { tab.name.clone() } else { name };
+        let (path, name, root_path, image_path) = {
+            let tab = &self.tabs[tab_idx];
+            if tab.oto_path.is_none() { return; }
             
-            let mut recent = crate::app::state::RecentVoicebank {
-                name,
-                path: path.clone(),
-                image_path: tab.character_image_path.clone(),
+            let name = if tab.character_name.is_empty() { 
+                tab.name.clone() 
+            } else { 
+                tab.character_name.clone() 
             };
+            
+            (
+                tab.oto_path.clone().unwrap(),
+                name,
+                tab.root_path.clone(),
+                tab.character_image_path.clone()
+            )
+        };
+        
+        let recent = crate::app::state::RecentVoicebank {
+            name,
+            path: path.clone(),
+            root_path,
+            image_path,
+        };
 
-            // Remove if already exists (same path)
-            self.config.recent_voicebanks.retain(|r| r.path != *path);
-            
-            // Insert at front
-            self.config.recent_voicebanks.insert(0, recent);
-            
-            // Limit to 20
-            if self.config.recent_voicebanks.len() > 20 {
-                self.config.recent_voicebanks.pop();
-            }
-            self.save_prefs();
+        // Remove if already exists (same path)
+        self.config.recent_voicebanks.retain(|r| r.path != path);
+        
+        // Insert at front
+        self.config.recent_voicebanks.insert(0, recent);
+        
+        // Limit to 40
+        if self.config.recent_voicebanks.len() > 40 {
+            self.config.recent_voicebanks.pop();
         }
+        self.save_prefs();
     }
 
     pub fn scan_for_oto(&self, dir: &Path, acc: &mut Vec<PathBuf>) {
@@ -203,6 +226,19 @@ impl CopaibaApp {
         }
     }
 
+    pub fn load_oto_in_new_tab(&mut self, path: PathBuf) {
+        // Reuse current tab if empty and untouched
+        let reuse = self.tabs.len() == 1 && self.tabs[0].oto_path.is_none() && !self.tabs[0].dirty;
+        
+        if !reuse {
+            self.tabs.push(crate::app::state::TabState::default());
+            self.current_tab = self.tabs.len() - 1;
+        } else {
+            self.current_tab = 0;
+        }
+        self.load_oto(path);
+    }
+
     pub fn open_oto(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
             .add_filter("oto.ini", &["ini"])
@@ -216,92 +252,119 @@ impl CopaibaApp {
         let dir_opt = self.tabs[tab_idx].oto_dir.clone();
         let encoding = self.encoding;
 
-        if let Some(mut current_dir) = dir_opt {
-            // Search up to 4 levels for character.txt (recursive search for voicebank root)
+        if let Some(original_dir) = dir_opt {
+            let mut root_dir = original_dir.clone();
+            let mut curr = original_dir.clone();
+            let mut found_txt = false;
+
+            // Step 1: Find the actual root by looking for character.txt up to 4 levels up
             for _ in 0..4 {
-                let char_path = current_dir.join("character.txt");
-                if char_path.exists() {
-                    if let Ok(bytes) = std::fs::read(&char_path) {
-                        // Decode using the current encoding (same as oto.ini)
-                        let content = match encoding {
-                            crate::oto::OtoEncoding::Utf8 => String::from_utf8_lossy(&bytes).to_string(),
-                            crate::oto::OtoEncoding::ShiftJis => {
-                                let (res, _, _) = encoding_rs::SHIFT_JIS.decode(&bytes);
-                                res.to_string()
-                            }
-                            crate::oto::OtoEncoding::Gbk => {
-                                let (res, _, _) = encoding_rs::GBK.decode(&bytes);
-                                res.to_string()
-                            }
-                        };
-
-                        let mut name = String::new();
-                        let mut image = None;
-
-                        for line in content.lines() {
-                            let line = line.trim();
-                            if line.to_lowercase().starts_with("name=") {
-                                name = line[5..].to_string();
-                            } else if line.to_lowercase().starts_with("image=") {
-                                let img_name = line[6..].trim().to_string();
-                                if !img_name.is_empty() {
-                                    image = Some(current_dir.join(img_name));
-                                }
-                            }
-                        }
-                        
-                        // Search for readme/license in the same directory
-                        let mut readme = String::new();
-                        let mut license = String::new();
-                        
-                        let readme_files = ["readme.txt", "readme.html", "README.txt", "Readme.txt", "readme", "README"];
-                        let license_files = ["license.txt", "licence.txt", "LICENSE.txt", "license", "licence", "LICENSE"];
-                        
-                        for rf in readme_files {
-                            let rp = current_dir.join(rf);
-                            if rp.exists() {
-                                if let Ok(rb) = std::fs::read(&rp) {
-                                    readme = match encoding {
-                                        crate::oto::OtoEncoding::Utf8 => String::from_utf8_lossy(&rb).to_string(),
-                                        crate::oto::OtoEncoding::ShiftJis => encoding_rs::SHIFT_JIS.decode(&rb).0.to_string(),
-                                        crate::oto::OtoEncoding::Gbk => encoding_rs::GBK.decode(&rb).0.to_string(),
-                                    };
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        for lf in license_files {
-                            let lp = current_dir.join(lf);
-                            if lp.exists() {
-                                if let Ok(lb) = std::fs::read(&lp) {
-                                    license = match encoding {
-                                        crate::oto::OtoEncoding::Utf8 => String::from_utf8_lossy(&lb).to_string(),
-                                        crate::oto::OtoEncoding::ShiftJis => encoding_rs::SHIFT_JIS.decode(&lb).0.to_string(),
-                                        crate::oto::OtoEncoding::Gbk => encoding_rs::GBK.decode(&lb).0.to_string(),
-                                    };
-                                    break;
-                                }
-                            }
-                        }
-
-                        let tab: &mut TabState = &mut self.tabs[tab_idx];
-                        tab.character_name = name;
-                        tab.character_image_path = image;
-                        tab.character_texture = None;
-                        tab.readme_text = readme;
-                        tab.license_text = license;
-                        return;
-                    }
+                if curr.join("character.txt").exists() {
+                    root_dir = curr.clone();
+                    found_txt = true;
+                    break;
                 }
-                
-                // Go up one level
-                if let Some(parent) = current_dir.parent() {
-                    current_dir = parent.to_path_buf();
+                if let Some(p) = curr.parent() {
+                    curr = p.to_path_buf();
                 } else {
                     break;
                 }
             }
+
+            // If we didn't find character.txt, we just use the original directory as root
+            // Step 2: Load metadata from root_dir
+            let mut name = String::new();
+            let mut image = None;
+
+            if found_txt {
+                if let Ok(bytes) = std::fs::read(root_dir.join("character.txt")) {
+                    let content = match encoding {
+                        crate::oto::OtoEncoding::Utf8 => String::from_utf8_lossy(&bytes).to_string(),
+                        crate::oto::OtoEncoding::ShiftJis => encoding_rs::SHIFT_JIS.decode(&bytes).0.to_string(),
+                        crate::oto::OtoEncoding::Gbk => encoding_rs::GBK.decode(&bytes).0.to_string(),
+                    };
+
+                    for line in content.lines() {
+                        let line = line.trim();
+                        if line.to_lowercase().starts_with("name=") {
+                            name = line[5..].to_string();
+                        } else if line.to_lowercase().starts_with("image=") {
+                            let img_name = line[6..].trim().to_string();
+                            if !img_name.is_empty() {
+                                image = Some(root_dir.join(img_name));
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Fallback image search
+            if image.is_none() {
+                let possible_images = ["character.png", "character.jpg", "character.bmp", "icon.png", "char.png"];
+                for pi in possible_images {
+                    let pp = root_dir.join(pi);
+                    if pp.exists() {
+                        image = Some(pp);
+                        break;
+                    }
+                }
+            }
+
+            // Fallback image search in parent if not found in original dir but character.txt is missing
+            if image.is_none() && !found_txt && original_dir.parent().is_some() {
+                 let possible_images = ["character.png", "character.jpg", "character.bmp", "icon.png", "char.png"];
+                 let parent = original_dir.parent().unwrap();
+                 for pi in possible_images {
+                    let pp = parent.join(pi);
+                    if pp.exists() {
+                        image = Some(pp);
+                        root_dir = parent.to_path_buf(); // Assume parent is the real root
+                        break;
+                    }
+                }
+            }
+
+            // Search for readme/license
+            let mut readme = String::new();
+            let mut license = String::new();
+            let readme_files = ["readme.txt", "readme.html", "README.txt", "Readme.txt", "readme", "README"];
+            let license_files = ["license.txt", "licence.txt", "LICENSE.txt", "license", "licence", "LICENSE"];
+            
+            for rf in readme_files {
+                let rp = root_dir.join(rf);
+                if rp.exists() {
+                    if let Ok(rb) = std::fs::read(&rp) {
+                        readme = match encoding {
+                            crate::oto::OtoEncoding::Utf8 => String::from_utf8_lossy(&rb).to_string(),
+                            crate::oto::OtoEncoding::ShiftJis => encoding_rs::SHIFT_JIS.decode(&rb).0.to_string(),
+                            crate::oto::OtoEncoding::Gbk => encoding_rs::GBK.decode(&rb).0.to_string(),
+                        };
+                        break;
+                    }
+                }
+            }
+            
+            for lf in license_files {
+                let lp = root_dir.join(lf);
+                if lp.exists() {
+                    if let Ok(lb) = std::fs::read(&lp) {
+                        license = match encoding {
+                            crate::oto::OtoEncoding::Utf8 => String::from_utf8_lossy(&lb).to_string(),
+                            crate::oto::OtoEncoding::ShiftJis => encoding_rs::SHIFT_JIS.decode(&lb).0.to_string(),
+                            crate::oto::OtoEncoding::Gbk => encoding_rs::GBK.decode(&lb).0.to_string(),
+                        };
+                        break;
+                    }
+                }
+            }
+
+            let tab: &mut crate::app::state::TabState = &mut self.tabs[tab_idx];
+            tab.character_name = name;
+            tab.character_image_path = image;
+            tab.character_texture = None;
+            tab.root_path = Some(root_dir);
+            tab.readme_text = readme;
+            tab.license_text = license;
         }
     }
 
@@ -317,6 +380,11 @@ impl CopaibaApp {
                     tab.original_entries = parsed.entries;
                     tab.oto_dir = path.parent().map(|p| p.to_path_buf());
                     tab.oto_path = Some(path);
+                    if let Some(dir) = &tab.oto_dir {
+                        if let Some(fname) = dir.file_name() {
+                            tab.name = fname.to_string_lossy().to_string();
+                        }
+                    }
                     tab.selected = 0;
                     tab.dirty = false;
                     tab.undo_stack.clear();
@@ -329,10 +397,8 @@ impl CopaibaApp {
                     tab.wave_view = WaveformView::default();
                     tab.selected = usize::MAX;
                 }
-                if !self.cur().filtered.is_empty() {
-                    self.select_multi(0, false, false);
-                }
                 self.load_character_metadata(self.current_tab);
+                self.add_to_recent(self.current_tab);
                 self.ui.status = format!("{} {}", self.cur().entries.len(), tr!("file_ops.status.aliases_loaded"));
                 self.save_prefs();
             }

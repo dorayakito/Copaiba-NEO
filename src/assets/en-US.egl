@@ -88,6 +88,7 @@ modal.preset.grid.overlap = Overlap
 modal.settings.window.name = Settings
 modal.settings.general.heading = General
 modal.settings.general.label.language = Language:
+modal.settings.general.ckb.play_ui_sounds = Enable keyboard sounds
 modal.settings.waveform.heading = Waveform View
 modal.settings.waveform.ckb.show_minimap = Show Waveform
 modal.settings.waveform.ckb.persistent_zoom = Keep zoom when switching alias

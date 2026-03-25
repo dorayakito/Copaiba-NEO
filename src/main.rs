@@ -18,11 +18,23 @@ fn main() -> eframe::Result {
     let _ = egui_i18n::load_translations_from_text("pt-BR", include_str!("assets/pt-BR.egl"));
 
     println!("Starting Copaiba NEO...");
+    
+    // Load Icon
+    let icon_data = if let Ok(img) = image::open("favicon_mori.png") {
+        use image::GenericImageView;
+        let (width, height) = img.dimensions();
+        let rgba = img.to_rgba8().into_raw();
+        Some(egui::IconData { rgba, width, height })
+    } else {
+        None
+    };
+
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("Copaiba NEO")
             .with_inner_size([1280.0, 720.0])
-            .with_min_inner_size([800.0, 500.0]),
+            .with_min_inner_size([800.0, 500.0])
+            .with_icon(icon_data.unwrap_or_default()),
         ..Default::default()
     };
     println!("Options initialized. Running native...");
@@ -30,6 +42,7 @@ fn main() -> eframe::Result {
         "Copaiba NEO",
         options,
         Box::new(|cc| {
+            egui_extras::install_image_loaders(&cc.egui_ctx);
             println!("Applying theme...");
             apply_dark_theme(&cc.egui_ctx);
             println!("Initializing app...");
@@ -39,6 +52,17 @@ fn main() -> eframe::Result {
             // Set the language from config
             let lang = app.config.language.clone();
             app.set_language(&lang);
+            
+            // Refresh default tab name if it was initialized empty
+            if app.tabs.len() == 1 && (app.tabs[0].name.is_empty() || app.tabs[0].name == "Novo Set") {
+                app.tabs[0].name = egui_i18n::tr!("state.tab.default_name").to_string();
+            }
+
+            println!("Loading UI sounds...");
+            app.load_ui_sounds();
+
+            setup_fonts(&cc.egui_ctx);
+
             println!("App started!");
             Ok(Box::new(app))
         }),
@@ -50,38 +74,62 @@ fn main() -> eframe::Result {
 fn setup_fonts(ctx: &egui::Context) {
     println!("Setting up fonts...");
     let mut fonts = egui::FontDefinitions::default();
+    // CJK Fonts
     let system_fonts = [
+        // Linux
         "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
         "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
         "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
+        // Windows
+        //Japones
+        "C:\\Windows\\Fonts\\msyh.ttc",   // Microsoft YaHei
+        "C:\\Windows\\Fonts\\msgothic.ttc", // MS Gothic
+        "C:\\Windows\\Fonts\\simsun.ttc",  // SimSun
+        "C:\\Windows\\Fonts\\meiryo.ttc",  // Meiryo
+        "C:\\Windows\\Fonts\\msmincho.ttc",   // MS Mincho
+        "C:\\Windows\\Fonts\\YuGothic.ttf",   // Yu Gothic
+        "C:\\Windows\\Fonts\\YuMincho.ttf",   // Yu Mincho
+        "C:\\Windows\\Fonts\\meiryo.ttc",     // Meiryo
+        "C:\\Windows\\Fonts\\msjhl.ttc",      // MS JHL
+        //Coreano
+        "C:\\Windows\\Fonts\\malgun.ttf",    // Malgun Gothic
+        "C:\\Windows\\Fonts\\gulim.ttc",     // Gulim
+        //Chines
+        "C:\\Windows\\Fonts\\simsun.ttc",     // SimSun
+        "C:\\Windows\\Fonts\\simhei.ttf",    // SimHei
+        "C:\\Windows\\Fonts\\mingliu.ttc",    // MingLiu
+        "C:\\Windows\\Fonts\\kai.ttf",       // Kai
+        "C:\\Windows\\Fonts\\arialuni.ttf",  // Arial Unicode MS
     ];
-    let mut found = false;
+
     for path in system_fonts {
         if Path::new(path).exists() {
             if let Ok(data) = std::fs::read(path) {
                 fonts.font_data.insert("cjk_font".to_owned(), Arc::new(egui::FontData::from_owned(data)));
                 fonts.families.get_mut(&egui::FontFamily::Proportional).unwrap().push("cjk_font".to_owned());
                 fonts.families.get_mut(&egui::FontFamily::Monospace).unwrap().push("cjk_font".to_owned());
-                found = true;
                 break;
             }
         }
     }
-    if found { ctx.set_fonts(fonts); }
+    
+    ctx.set_fonts(fonts);
 }
 
 // ── eframe::App implementation ─────────────────────────────────────────────────
-
 impl eframe::App for CopaibaApp {
+
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        use std::io::Write;
         let now = ctx.input(|i| i.time);
-        if self.session_start_time == 0.0 {
-            print!("First frame at time: {}\n", now);
-            let _ = std::io::stdout().flush();
-        }
-        // if now < 0.1 { setup_fonts(ctx); }
         if self.session_start_time == 0.0 { self.session_start_time = now; }
+
+        if self.ui.show_splash {
+            self.ui.splash_progress += ctx.input(|i| i.stable_dt).min(0.1);
+            if self.ui.splash_progress > 3.5 {
+                self.ui.show_splash = false;
+            }
+            ctx.request_repaint();
+        }
 
         // Close confirmation
         if ctx.input(|i| i.viewport().close_requested()) {
@@ -93,22 +141,26 @@ impl eframe::App for CopaibaApp {
 
         // ── Panels (order matters: top/bottom before central) ──────────────────
         self.show_menu_bar(ctx);
-        self.show_tab_bar(ctx);
-        self.show_alias_table(ctx);
         self.show_status_bar(ctx, now);
-        self.show_tools_panel(ctx);
+        
+        if self.ui.show_home {
+            self.show_home_screen(ctx);
+        } else {
+            self.show_tab_bar(ctx);
+            self.show_voicebank_header(ctx);
+            self.show_alias_table(ctx);
+            self.show_tools_panel(ctx);
+            self.show_waveform_panel(ctx);
+        }
 
         // ── Keyboard shortcuts (before waveform to avoid consuming events) ─────
         self.handle_shortcuts(ctx);
-
-        // ── Central waveform panel ─────────────────────────────────────────────
-        self.show_waveform_panel(ctx);
 
         // ── Modal windows ──────────────────────────────────────────────────────
         self.show_modals(ctx);
 
         // Repaint rate
-        if self.audio.playback_start.is_some() {
+        if self.audio.playback_start.is_some() || self.ui.show_splash {
             ctx.request_repaint_after(std::time::Duration::from_millis(32));
         } else {
             ctx.request_repaint_after(std::time::Duration::from_millis(500));

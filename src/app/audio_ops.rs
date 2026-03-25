@@ -17,14 +17,50 @@ impl CopaibaApp {
     }
 
     pub fn init_audio(&mut self) {
-        if self.audio.sink.is_some() { return; }
+        if self.audio.sink.is_some() && self.audio.ui_sink.is_some() { return; }
         if let Ok((stream, handle)) = OutputStream::try_default() {
             if let Ok(sink) = Sink::try_new(&handle) {
-                self.audio._stream = Some(stream);
-                self.audio._stream_handle = Some(handle);
-                self.audio.sink = Some(Arc::new(sink));
+                if let Ok(ui_sink) = Sink::try_new(&handle) {
+                    self.audio._stream = Some(stream);
+                    self.audio._stream_handle = Some(handle);
+                    self.audio.sink = Some(Arc::new(sink));
+                    self.audio.ui_sink = Some(Arc::new(ui_sink));
+                }
             }
         }
+    }
+
+    pub fn load_ui_sounds(&mut self) {
+        let sounds_dir = std::path::Path::new("sounds");
+        if let Ok(entries) = std::fs::read_dir(sounds_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.extension().map_or(false, |ext| ext == "wav") {
+                    if let Some(name) = path.file_stem().and_then(|s| s.to_str()) {
+                        if let Ok(ws) = load_wav(&path) {
+                            self.audio.ui_sounds.insert(name.to_string(), ws.wav);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn play_ui_sound(&mut self, name: &str) {
+        if !self.config.play_ui_sounds { return; }
+        self.init_audio();
+        if let (Some(sink), Some(wav)) = (&self.audio.ui_sink, self.audio.ui_sounds.get(name)) {
+            let samples = (*wav.samples).clone();
+            let source = rodio::buffer::SamplesBuffer::new(1, wav.sample_rate, samples);
+            sink.append(source);
+        }
+    }
+
+    pub fn play_key_sound(&mut self) {
+        let idx = self.ui.key_sound_idx;
+        let name = format!("key{:02}", (idx % 6) + 1);
+        self.play_ui_sound(&name);
+        self.ui.key_sound_idx = (idx + 1) % 6;
     }
 
     pub fn play_current_segment(&mut self, full: bool) {

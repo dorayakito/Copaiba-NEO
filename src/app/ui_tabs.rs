@@ -21,12 +21,17 @@ impl CopaibaApp {
                     ui.horizontal(|ui| {
                         if is_renaming {
                             let resp = ui.add(egui::TextEdit::singleline(&mut self.tabs[i].name).desired_width(80.0));
+                            if resp.changed() { self.play_key_sound(); }
                             if resp.lost_focus() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
                                 self.ui.renaming_tab = None;
                             }
                         } else {
-                            let name = format!("{}{} ", self.tabs[i].name, if self.tabs[i].dirty { "*" } else { "" });
-                            let resp = ui.selectable_label(is_active, name);
+                            let mut name = self.tabs[i].name.clone();
+                            if name.is_empty() {
+                                name = tr!("state.tab.default_name").to_string();
+                            }
+                            let label_text = format!("  {} {}  ", name, if self.tabs[i].dirty { "*" } else { "" });
+                            let resp = ui.selectable_label(is_active, label_text);
                             if resp.clicked() { 
                                 if self.current_tab != i {
                                     self.stop_playback();

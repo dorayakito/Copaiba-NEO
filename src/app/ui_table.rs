@@ -10,6 +10,7 @@ impl CopaibaApp {
             .default_height(180.0)
             .min_height(80.0)
             .show(ctx, |ui| {
+                let mut play_sound = false;
                 ui.add_space(4.0);
                 {
                     let tab = self.cur_mut();
@@ -26,7 +27,10 @@ impl CopaibaApp {
                             .desired_width(f32::INFINITY)
                     ).changed()
                 };
-                if f_changed { self.rebuild_filter(); }
+                if f_changed { 
+                    self.rebuild_filter();
+                    play_sound = true;
+                }
 
                 let tab = self.cur_mut();
                 ui.add_space(2.0);
@@ -76,7 +80,10 @@ impl CopaibaApp {
                                 row.col(|ui| {
                                     if is_selected { ui.scroll_to_cursor(Some(egui::Align::Center)); }
                                     let id = egui::Id::new(("cell", fi, 0));
-                                    if ui.push_id(id, |ui| ui.checkbox(&mut entry.done, "")).response.changed() { tab.dirty = true; }
+                                    if ui.push_id(id, |ui| ui.checkbox(&mut entry.done, "")).response.changed() { 
+                                        tab.dirty = true;
+                                        play_sound = true;
+                                    }
                                     if ui.memory(|m| m.has_focus(id)) { new_sel = Some(fi); tab.focus_col = 0; }
                                 });
 
@@ -92,7 +99,11 @@ impl CopaibaApp {
                                     let id = egui::Id::new(("cell", fi, 2));
                                     let mut temp_alias = entry.alias.clone();
                                     let resp = ui.add(egui::TextEdit::singleline(&mut temp_alias).id(id).frame(false));
-                                    if resp.changed() { entry.alias = temp_alias; tab.dirty = true; }
+                                    if resp.changed() { 
+                                        if temp_alias.len() > entry.alias.len() { play_sound = true; }
+                                        entry.alias = temp_alias; 
+                                        tab.dirty = true; 
+                                    }
                                     if resp.clicked() { new_sel = Some(fi); tab.focus_col = 2; }
                                     if ui.memory(|m| m.has_focus(id)) { new_sel = Some(fi); tab.focus_col = 2; }
                                 });
@@ -101,7 +112,10 @@ impl CopaibaApp {
                                     ($ui:expr, $val:expr, $col_idx:expr) => {
                                         let id = egui::Id::new(("cell", fi, $col_idx));
                                         let ir = $ui.push_id(id, |ui| ui.add(egui::DragValue::new($val).speed(1.0)));
-                                        if ir.response.changed() { tab.dirty = true; }
+                                        if ir.response.changed() { 
+                                            tab.dirty = true; 
+                                            play_sound = true;
+                                        }
                                         if ir.response.clicked() { new_sel = Some(fi); tab.focus_col = $col_idx; }
                                         if $ui.memory(|m| m.has_focus(id)) { new_sel = Some(fi); tab.focus_col = $col_idx; }
                                     }
@@ -113,7 +127,7 @@ impl CopaibaApp {
                                 row.col(|ui| { num_col!(ui, &mut entry.consonant, 6); });
                                 row.col(|ui| { 
                                     num_col!(ui, &mut entry.cutoff, 7); 
-                                    ui.interact_bg(egui::Sense::click()).context_menu(|ui| {
+                                    ui.interact(ui.max_rect(), ui.id().with("ctx"), egui::Sense::click()).context_menu(|ui| {
                                         if ui.button(tr!("table.cutoff.invert")).clicked() {
                                             if entry.cutoff < 0.0 {
                                                 // Convert to positive (relative to end) - approximate
@@ -131,7 +145,10 @@ impl CopaibaApp {
                                 row.col(|ui| {
                                     let id = egui::Id::new(("cell", fi, 8));
                                     let resp = ui.add(egui::TextEdit::singleline(&mut entry.notes).hint_text("...").id(id).frame(false));
-                                    if resp.changed() { tab.dirty = true; }
+                                    if resp.changed() { 
+                                        tab.dirty = true; 
+                                        play_sound = true;
+                                    }
                                     if resp.clicked() { new_sel = Some(fi); tab.focus_col = 8; }
                                     if ui.memory(|m| m.has_focus(id)) { new_sel = Some(fi); tab.focus_col = 8; }
                                 });
@@ -144,6 +161,7 @@ impl CopaibaApp {
                     let shift = ctx.input(|i| i.modifiers.shift);
                     self.select_multi(fi, ctrl, shift);
                 }
+                if play_sound { self.play_key_sound(); }
             });
     }
 }

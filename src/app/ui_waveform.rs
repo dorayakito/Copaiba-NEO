@@ -183,11 +183,13 @@ impl CopaibaApp {
             let tab = self.cur_mut();
             tab.wave_view.srp = !tab.wave_view.srp;
             if tab.wave_view.srp { tab.wave_view.srna = false; }
+            self.play_key_sound();
         }
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::SHIFT, egui::Key::Num2)) {
             let tab = self.cur_mut();
             tab.wave_view.srna = !tab.wave_view.srna;
             if tab.wave_view.srna { tab.wave_view.srp = false; }
+            self.play_key_sound();
         }
 
         // Preset shortcuts Ctrl+1..5
@@ -209,6 +211,7 @@ impl CopaibaApp {
                             entry.overlap = p.overlap;
                             tab.dirty = true;
                         }
+                        self.play_key_sound();
                     }
                 }
             }
@@ -219,28 +222,30 @@ impl CopaibaApp {
             let tab = self.cur_mut();
             tab.multi_selection.clear();
             for fi in 0..tab.filtered.len() { tab.multi_selection.insert(fi); }
+            self.play_key_sound();
         }
 
         // Save
         if ctrl && ctx.input(|i| i.key_pressed(egui::Key::S)) {
             if shift { self.save_as(); } else { self.save_oto(); }
+            self.play_key_sound();
         }
 
         // Open
-        if ctrl && ctx.input(|i| i.key_pressed(egui::Key::O)) { self.open_oto(); }
+        if ctrl && ctx.input(|i| i.key_pressed(egui::Key::O)) { self.open_oto(); self.play_key_sound(); }
 
         // Settings
-        if ctrl && ctx.input(|i| i.key_pressed(egui::Key::Comma)) { self.ui.show_settings = !self.ui.show_settings; }
+        if ctrl && ctx.input(|i| i.key_pressed(egui::Key::Comma)) { self.ui.show_settings = !self.ui.show_settings; self.play_key_sound(); }
 
         // Undo / Redo
-        if ctrl && ctx.input(|i| i.key_pressed(egui::Key::Z)) { self.undo(ctx); }
-        if ctrl && ctx.input(|i| i.key_pressed(egui::Key::Y)) { self.redo(ctx); }
+        if ctrl && ctx.input(|i| i.key_pressed(egui::Key::Z)) { self.undo(ctx); self.play_key_sound(); }
+        if ctrl && ctx.input(|i| i.key_pressed(egui::Key::Y)) { self.redo(ctx); self.play_key_sound(); }
 
         // Help
-        if ctx.input(|i| i.key_pressed(egui::Key::F1)) { self.ui.show_help = !self.ui.show_help; }
+        if ctx.input(|i| i.key_pressed(egui::Key::F1)) { self.ui.show_help = !self.ui.show_help; self.play_key_sound(); }
 
         // Recorder
-        if ctx.input(|i| i.key_pressed(egui::Key::F9)) { self.ui.show_recorder = !self.ui.show_recorder; }
+        if ctx.input(|i| i.key_pressed(egui::Key::F9)) { self.ui.show_recorder = !self.ui.show_recorder; self.play_key_sound(); }
 
         // Mark done
         if ctrl && ctx.input(|i| i.key_pressed(egui::Key::M)) {
@@ -249,6 +254,7 @@ impl CopaibaApp {
                 self.save_undo_state();
                 let tab = self.cur_mut();
                 if let Some(entry) = tab.entries.get_mut(idx) { entry.done = !entry.done; tab.dirty = true; }
+                self.play_key_sound();
             }
         }
 
@@ -272,6 +278,7 @@ impl CopaibaApp {
                 self.rebuild_filter();
                 let f_len = self.cur().filtered.len();
                 self.select_multi(sel.min(f_len.saturating_sub(1)), false, false);
+                self.play_key_sound();
             }
         }
 
@@ -291,6 +298,7 @@ impl CopaibaApp {
                 tab.dirty = true;
                 self.rebuild_filter();
                 self.select_multi(fi + 1, false, false);
+                self.play_key_sound();
             }
         }
 
@@ -300,6 +308,7 @@ impl CopaibaApp {
             if let Some(entry) = tab.filtered.get(tab.selected).copied().and_then(|idx| tab.entries.get(idx)) {
                 let csv = format!("{},{},{},{},{}", entry.offset, entry.consonant, entry.cutoff, entry.preutter, entry.overlap);
                 ctx.copy_text(csv);
+                self.play_key_sound();
             }
         }
 
@@ -309,6 +318,7 @@ impl CopaibaApp {
                 #[cfg(target_os = "windows")] let _ = std::process::Command::new("explorer").arg(d).spawn();
                 #[cfg(target_os = "macos")] let _ = std::process::Command::new("open").arg(d).spawn();
                 #[cfg(target_os = "linux")] let _ = std::process::Command::new("xdg-open").arg(d).spawn();
+                self.play_key_sound();
             }
         }
 
@@ -326,8 +336,8 @@ impl CopaibaApp {
         };
 
         if f_len > 0 {
-            if up && sel > 0 { self.select_multi(sel - 1, false, shift_mod); }
-            if down && sel + 1 < f_len { self.select_multi(sel + 1, false, shift_mod); }
+            if up && sel > 0 { self.select_multi(sel - 1, false, shift_mod); self.play_key_sound(); }
+            if down && sel + 1 < f_len { self.select_multi(sel + 1, false, shift_mod); self.play_key_sound(); }
 
             let mut new_col = col;
             let mut trigger_nav = false;
@@ -345,10 +355,16 @@ impl CopaibaApp {
                 self.cur_mut().focus_col = new_col;
                 let id = egui::Id::new(("cell", self.cur().selected, new_col));
                 ctx.memory_mut(|m| m.request_focus(id));
+                self.play_key_sound();
             } else if up || down {
                 let id = egui::Id::new(("cell", self.cur().selected, col));
                 ctx.memory_mut(|m| m.request_focus(id));
             }
+        }
+
+        // Enter → Clique
+        if ctx.input(|i| i.key_pressed(egui::Key::Enter)) {
+            self.play_ui_sound("enter");
         }
 
         // Space → play

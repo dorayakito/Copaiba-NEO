@@ -8,6 +8,7 @@ use super::state::CopaibaApp;
 
 impl CopaibaApp {
     pub fn show_modals(&mut self, ctx: &egui::Context) {
+        self.show_splash_screen(ctx);
         self.modal_exit_dialog(ctx);
         self.modal_preset_editor(ctx);
         self.modal_settings(ctx);
@@ -19,6 +20,8 @@ impl CopaibaApp {
         self.modal_duplicate_detector(ctx);
         self.modal_pitch_analyzer(ctx);
         self.modal_recorder(ctx);
+        self.modal_readme(ctx);
+        self.modal_license(ctx);
     }
 
     fn modal_exit_dialog(&mut self, ctx: &egui::Context) {
@@ -116,6 +119,7 @@ impl CopaibaApp {
                                 }
                             });
                     });
+                    ui.checkbox(&mut self.config.play_ui_sounds, tr!("modal.settings.general.ckb.play_ui_sounds"));
                     ui.separator();
 
                     ui.heading(format!("🎬 {}", tr!("modal.settings.waveform.heading")));
@@ -523,5 +527,93 @@ impl CopaibaApp {
             tab.wave_view.wave_cache = crate::waveform::WaveCache::default();
             tab.wave_view.minimap_cache = crate::waveform::MinimapCache::default();
         }
+    }
+
+    fn show_splash_screen(&mut self, ctx: &egui::Context) {
+        if !self.ui.show_splash { return; }
+        
+        egui::Area::new(egui::Id::new("splash"))
+            .order(egui::Order::Foreground)
+            .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
+            .show(ctx, |ui| {
+                let screen_rect = ui.ctx().screen_rect();
+                ui.painter().rect_filled(screen_rect, 0.0, egui::Color32::from_rgb(18, 18, 28));
+                
+                ui.vertical_centered(|ui| {
+                    ui.add_space(screen_rect.height() * 0.3);
+                    ui.add(
+                        egui::Image::new(egui::include_image!("../../favicon_mori.png"))
+                            .max_width(180.0)
+                            .corner_radius(10)
+                    );
+                    ui.add_space(24.0);
+                    ui.heading(RichText::new("Copaiba NEO").strong().size(36.0));
+                    ui.label(RichText::new("Oto.ini Editor").color(egui::Color32::from_gray(120)));
+                    ui.add_space(24.0);
+                    
+                    ui.label(RichText::new("Desenvolvedores / Coders").strong().size(14.0).color(egui::Color32::from_rgb(150, 150, 200)));
+                    ui.label(RichText::new("xiao (@dorayakito)\nHAI-D (@overdramatic)").size(13.0));
+                    ui.add_space(12.0);
+                    
+                    ui.label(RichText::new("Quality Assurance").strong().size(14.0).color(egui::Color32::from_rgb(150, 150, 200)));
+                    ui.label(RichText::new("Zone (@zoneryth)\nMakki (@maezono00)").size(13.0));
+                    ui.add_space(12.0);
+                    
+                    ui.label(RichText::new("Porta-voz nJokis").strong().size(14.0).color(egui::Color32::from_rgb(150, 150, 200)));
+                    ui.label(RichText::new("oneno-ren (@oneno-ren)").size(13.0));
+                    ui.add_space(12.0);
+
+                    ui.label(RichText::new("Ícone / Favicon").strong().size(14.0).color(egui::Color32::from_rgb(150, 150, 200)));
+                    ui.label(RichText::new("Mori-P (@pingolinhachan.com)").size(13.0));
+                    
+                    ui.add_space(32.0);
+                    
+                    let progress = (self.ui.splash_progress / 3.5).clamp(0.0, 1.0);
+                    ui.add(egui::ProgressBar::new(progress).desired_width(280.0).animate(true));
+                    ui.add_space(8.0);
+                    
+                    let messages = [
+                        "Coletando dados ...",
+                        "Carregando dados ...",
+                        "Gravando dados ...",
+                        "Sincronizando satélite ...",
+                        "Portando o bengue fengue xengue ...",
+                    ];
+                    let msg_idx = ((self.ui.splash_progress / (3.5_f32 / messages.len() as f32)) as usize).min(messages.len() - 1);
+                    ui.label(RichText::new(messages[msg_idx]).italics().size(12.0).color(egui::Color32::from_gray(100)));
+                });
+            });
+    }
+
+    fn modal_readme(&mut self, ctx: &egui::Context) {
+        if !self.ui.show_readme { return; }
+        let mut open = self.ui.show_readme;
+        let readme_text = self.cur().readme_text.clone();
+        egui::Window::new("📄 Readme")
+            .id(egui::Id::new("readme_modal"))
+            .open(&mut open)
+            .default_size([600.0, 400.0])
+            .show(ctx, |ui| {
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    ui.label(&readme_text);
+                });
+            });
+        self.ui.show_readme = open;
+    }
+
+    fn modal_license(&mut self, ctx: &egui::Context) {
+        if !self.ui.show_license { return; }
+        let mut open = self.ui.show_license;
+        let license_text = self.cur().license_text.clone();
+        egui::Window::new("⚖ License")
+            .id(egui::Id::new("license_modal"))
+            .open(&mut open)
+            .default_size([600.0, 400.0])
+            .show(ctx, |ui| {
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    ui.label(RichText::new(&license_text).color(egui::Color32::from_rgb(150, 200, 150)));
+                });
+            });
+        self.ui.show_license = open;
     }
 }

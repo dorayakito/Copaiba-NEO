@@ -357,6 +357,18 @@ pub fn draw_waveform(
     let vr = view.view_range_ms;
     let ve = vs + vr;
 
+    // Snapshot param positions for both minimap and waveform overlays
+    let abs_cutoff = |cutoff: f64, offset: f64| -> f64 {
+        if cutoff < 0.0 { offset - cutoff } else { dur - cutoff }
+    };
+    let current_params = [
+        (DragTarget::Offset,    entry.offset),
+        (DragTarget::Preutter,  entry.offset + entry.preutter),
+        (DragTarget::Overlap,   entry.offset + entry.overlap),
+        (DragTarget::Consonant, entry.offset + entry.consonant),
+        (DragTarget::Cutoff,    abs_cutoff(entry.cutoff, entry.offset)),
+    ];
+
     // ── Minimap Interaction & Pre-calculate Minimap Texture ──────────────
     if view.show_minimap {
         let mini_w = mini_rect.width().max(1.0) as usize;
@@ -407,6 +419,16 @@ pub fn draw_waveform(
             );
             mp.rect_filled(hl_rect, 1.0, Color32::from_white_alpha(40));
             mp.rect_stroke(hl_rect, 1.0, Stroke::new(1.0, Color32::from_white_alpha(80)), egui::StrokeKind::Inside);
+
+            // Draw parameter lines on minimap
+            for (target, ms) in &current_params {
+                let tx = (*ms / dur).clamp(0.0, 1.0) as f32;
+                let px = mini_rect.left() + tx * mini_rect.width();
+                mp.line_segment(
+                    [Pos2::new(px, mini_rect.top()), Pos2::new(px, mini_rect.bottom())],
+                    Stroke::new(1.0, color_for(*target).gamma_multiply(0.8)),
+                );
+            }
         }
     }
 
@@ -739,51 +761,43 @@ pub fn draw_waveform(
     }
 
 
-    // Snapshot after pan/edit (unused, we use unified vs/vr)
-    let cutoff_ms2 = abs_cutoff(entry.cutoff, entry.offset);
-    let lines2 = [
-        (DragTarget::Offset,    entry.offset),
-        (DragTarget::Preutter,  entry.offset + entry.preutter),
-        (DragTarget::Overlap,   entry.offset + entry.overlap),
-        (DragTarget::Consonant, entry.offset + entry.consonant),
-        (DragTarget::Cutoff,    cutoff_ms2),
-    ];
-
     // ── Consonant shaded region (light pink from Offset to Consonant) ─────
     {
-        let t = mini_outer_rect.top();
+        let t = if view.show_minimap { mini_outer_rect.top() } else { rect.bottom() };
         let cons_x_left  = ms_to_x(entry.offset, vs, vr, &wave_rect).clamp(wave_rect.left(), wave_rect.right());
         let cons_x_right = ms_to_x(entry.offset + entry.consonant, vs, vr, &wave_rect).clamp(wave_rect.left(), wave_rect.right());
         if cons_x_right > cons_x_left {
             painter.rect_filled(
                 Rect::from_min_max(Pos2::new(cons_x_left, rect.top()), Pos2::new(cons_x_right, t)),
                 0.0,
-                Color32::from_rgba_unmultiplied(200, 110, 160, 38), // 15% real (usando unmultiplied)
+                Color32::from_rgba_unmultiplied(200, 110, 160, 38), // 15% real
             );
         }
     }
 
     // ── Shaded inactive regions ───────────────────────────────────────────
-    let ox = ms_to_x(entry.offset, vs, vr, &wave_rect).clamp(wave_rect.left(), wave_rect.right());
-    let cx = ms_to_x(cutoff_ms2,   vs, vr, &wave_rect).clamp(wave_rect.left(), wave_rect.right());
-    let st = mini_outer_rect.top();
-    let shade = Color32::from_rgba_premultiplied(0, 0, 0, 100);
-    painter.rect_filled(
-        Rect::from_min_max(Pos2::new(rect.left(), rect.top()), Pos2::new(ox, st)),
-        0.0, shade,
-    );
-    painter.rect_filled(
-        Rect::from_min_max(Pos2::new(cx, rect.top()), Pos2::new(rect.right(), st)),
-        0.0, shade,
-    );
+    {
+        let ox = ms_to_x(entry.offset, vs, vr, &wave_rect).clamp(wave_rect.left(), wave_rect.right());
+        let cutoff_val = current_params[4].1; // Cutoff abs ms
+        let cx = ms_to_x(cutoff_val,   vs, vr, &wave_rect).clamp(wave_rect.left(), wave_rect.right());
+        let st = if view.show_minimap { mini_outer_rect.top() } else { rect.bottom() };
+        let shade = Color32::from_rgba_premultiplied(0, 0, 0, 100);
+        painter.rect_filled(
+            Rect::from_min_max(Pos2::new(rect.left(), rect.top()), Pos2::new(ox, st)),
+            0.0, shade,
+        );
+        painter.rect_filled(
+            Rect::from_min_max(Pos2::new(cx, rect.top()), Pos2::new(rect.right(), st)),
+            0.0, shade,
+        );
+    }
 
-    // ── Interaction: play cursor & Loading Bar ──────────────────────────
+    // ── Interaction: Loading Bar ──────────────────────────────────────────
     if is_animating {
         let bar_y = wave_outer_rect.top() + 1.0;
         let bar_h = 2.5;
         let color = Color32::from_rgb(137, 180, 250); // Catppuccin Blue
         
-        // Moving glow effect
         let t = (ui.input(|i| i.time) * 2.0).fract() as f32;
         let w = wave_outer_rect.width();
         let x0 = wave_outer_rect.left() + (t - 0.2).max(0.0) * w;
@@ -815,7 +829,7 @@ pub fn draw_waveform(
     }
 
     // ── Draw parameter lines (TOP LAYER) ──────────────────────────────────
-    for (target, ms) in &lines2 {
+    for (target, ms) in &current_params {
         let x = ms_to_x(*ms, vs, vr, &wave_rect);
         if x < wave_rect.left() - 2.0 || x > wave_rect.right() + 2.0 { continue; }
         
@@ -828,13 +842,10 @@ pub fn draw_waveform(
             Stroke::new(width, col),
         );
 
-        let is_bottom = *target == DragTarget::Overlap || *target == DragTarget::Consonant;
-        let (circle_y, text_pos, align) = if is_bottom {
-            let b = if view.show_minimap { mini_outer_rect.top() } else { rect.bottom() };
-            (b - 12.0, Pos2::new(x + 4.0, b - 4.0), egui::Align2::LEFT_BOTTOM)
-        } else {
-            (rect.top() + 12.0, Pos2::new(x + 4.0, rect.top() + 4.0), egui::Align2::LEFT_TOP)
-        };
+        // All markers and labels at the top
+        let circle_y = rect.top() + 12.0;
+        let text_pos = Pos2::new(x + 4.0, rect.top() + 4.0);
+        let align = egui::Align2::LEFT_TOP;
 
         painter.circle_filled(Pos2::new(x, circle_y), grab_r, col);
         painter.text(

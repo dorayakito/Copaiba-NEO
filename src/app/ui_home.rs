@@ -1,4 +1,4 @@
-use egui::{Color32, RichText, Vec2, Frame, Margin, CornerRadius};
+use egui::{Color32, RichText, Vec2, Frame};
 use egui_i18n::tr;
 use super::state::CopaibaApp;
 
@@ -33,28 +33,47 @@ impl CopaibaApp {
                             ui.label(RichText::new(tr!("home.label.recent")).size(24.0).strong());
                             ui.add_space(20.0);
                             
+                            // Grouping logic
+                            struct RecentGroup {
+                                name: String,
+                                root: std::path::PathBuf,
+                                image: Option<std::path::PathBuf>,
+                                items: Vec<crate::app::state::RecentVoicebank>,
+                            }
+                            
+                            let mut groups: Vec<RecentGroup> = Vec::new();
+                            for r in &self.config.recent_voicebanks {
+                                let root = r.root_path.clone().unwrap_or_else(|| {
+                                    r.path.parent().unwrap_or(&r.path).to_path_buf()
+                                });
+                                
+                                if let Some(group) = groups.iter_mut().find(|g| g.root == root) {
+                                    group.items.push(r.clone());
+                                } else {
+                                    groups.push(RecentGroup {
+                                        name: r.name.clone(),
+                                        root,
+                                        image: r.image_path.clone(),
+                                        items: vec![r.clone()],
+                                    });
+                                }
+                            }
+
                             ui.vertical(|ui| {
-                                for i in 0..self.config.recent_voicebanks.len() {
-                                    let recent = self.config.recent_voicebanks[i].clone();
-                                    let mut frame = Frame::new()
+                                for (g_idx, group) in groups.iter().enumerate() {
+                                    let _id = ui.id().with("group").with(g_idx);
+                                    let frame = Frame::new()
                                         .fill(Color32::from_rgb(20, 20, 30))
-                                        .corner_radius(CornerRadius::same(8))
-                                        .inner_margin(Margin::same(12))
-                                        .outer_margin(Margin::symmetric(0, 4));
+                                        .corner_radius(egui::CornerRadius::same(12))
+                                        .inner_margin(egui::Margin::same(16))
+                                        .outer_margin(egui::Margin::symmetric(0, 8));
                                     
-                                    let id = ui.id().with("recent").with(i);
-                                    let resp = ui.interact(ui.available_rect_before_wrap(), id, egui::Sense::click());
-                                    if resp.hovered() {
-                                        frame = frame.fill(Color32::from_rgb(30, 30, 45));
-                                        ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
-                                    }
-                                    
-                                    frame.show(ui, |ui| {
+                                    let inner_res = frame.show(ui, |ui| {
                                         ui.horizontal(|ui| {
-                                            // Thumbnail
-                                            let (rect, _) = ui.allocate_at_least(Vec2::new(60.0, 60.0), egui::Sense::hover());
+                                            // 🖼️ Thumbnail
+                                            let (rect, _) = ui.allocate_at_least(Vec2::new(80.0, 80.0), egui::Sense::hover());
                                             let mut painted = false;
-                                            if let Some(img_path) = &recent.image_path {
+                                            if let Some(img_path) = &group.image {
                                                 if let Ok(data) = std::fs::read(img_path) {
                                                     if let Ok(image) = image::load_from_memory(&data) {
                                                         let size = [image.width() as usize, image.height() as usize];
@@ -62,7 +81,7 @@ impl CopaibaApp {
                                                             size,
                                                             image.to_rgba8().as_flat_samples().as_slice(),
                                                         );
-                                                        let tex = ui.ctx().load_texture(format!("recent_{}", i), color_image, Default::default());
+                                                        let tex = ui.ctx().load_texture(format!("group_img_{}", g_idx), color_image, Default::default());
                                                         ui.painter().image(tex.id(), rect, egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)), Color32::WHITE);
                                                         painted = true;
                                                     }
@@ -70,34 +89,69 @@ impl CopaibaApp {
                                             }
                                             
                                             if !painted {
-                                                ui.painter().rect_filled(rect, 4.0, Color32::from_rgb(35, 35, 50));
-                                                ui.painter().text(rect.center(), egui::Align2::CENTER_CENTER, "🎵", egui::FontId::proportional(24.0), Color32::GRAY);
+                                                ui.painter().rect_filled(rect, 8.0, Color32::from_rgb(35, 35, 50));
+                                                ui.painter().text(rect.center(), egui::Align2::CENTER_CENTER, "🎵", egui::FontId::proportional(32.0), Color32::GRAY);
                                             }
                                             
-                                            ui.add_space(12.0);
+                                            ui.add_space(16.0);
                                             
                                             ui.vertical(|ui| {
-                                                let path_str = recent.path.to_string_lossy();
-                                                ui.label(RichText::new(&recent.name).size(18.0).strong().color(Color32::WHITE));
-                                                ui.label(RichText::new(path_str).size(12.0).color(Color32::GRAY));
+                                                ui.label(RichText::new(&group.name).size(22.0).strong().color(Color32::WHITE));
+                                                ui.label(RichText::new(group.root.to_string_lossy()).size(12.0).color(Color32::GRAY));
                                                 
-                                                // Branch representation
-                                                if let Some(parent) = recent.path.parent() {
-                                                    if let Some(gp) = parent.parent() {
-                                                        let branch = format!("{} > {}", gp.file_name().unwrap_or_default().to_string_lossy(), parent.file_name().unwrap_or_default().to_string_lossy());
-                                                        ui.label(RichText::new(format!(" {}", branch)).size(10.0).color(Color32::from_rgb(100, 100, 150)));
-                                                    }
-                                                }
-                                            });
-                                            
-                                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                                if ui.button(tr!("home.btn.open")).clicked() || resp.clicked() {
-                                                    self.load_oto(recent.path.clone());
-                                                    self.ui.show_home = false;
+                                                ui.add_space(8.0);
+                                                
+                                                // 📂 Subfolders / Files
+                                                for (i, item) in group.items.iter().enumerate() {
+                                                    let sub_name = if let Some(parent) = item.path.parent() {
+                                                        if parent == group.root {
+                                                            "main".to_string()
+                                                        } else {
+                                                            parent.file_name().map(|f| f.to_string_lossy().to_string()).unwrap_or_else(|| "sub".into())
+                                                        }
+                                                    } else {
+                                                        "root".into()
+                                                    };
+
+                                                    ui.horizontal(|ui| {
+                                                        ui.add_space(8.0);
+                                                        let _inner_id = ui.id().with("btn").with(g_idx).with(i);
+                                                        let btn_text = format!("  ↳  {}", sub_name);
+                                                        let btn = egui::Button::new(RichText::new(btn_text).size(13.0))
+                                                            .fill(Color32::TRANSPARENT)
+                                                            .stroke(egui::Stroke::NONE)
+                                                            .sense(egui::Sense::click());
+                                                        
+                                                        let resp = ui.add(btn);
+                                                        if resp.clicked() {
+                                                            self.load_oto_in_new_tab(item.path.clone());
+                                                            self.ui.show_home = false;
+                                                        }
+                                                        if resp.hovered() {
+                                                            ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+                                                        }
+                                                    });
+                                                    if i < group.items.len() - 1 { ui.add_space(2.0); }
                                                 }
                                             });
                                         });
                                     });
+
+                                    // Interact with the frame's rect
+                                    let response = ui.interact(inner_res.response.rect, _id, egui::Sense::click());
+                                    
+                                    if response.hovered() {
+                                        ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+                                        ui.painter().rect_stroke(response.rect, 12.0, egui::Stroke::new(1.0, Color32::from_rgb(100, 100, 255)), egui::StrokeKind::Middle);
+                                    }
+
+                                    if response.clicked() {
+                                        for item in &group.items {
+                                            self.load_oto_in_new_tab(item.path.clone());
+                                        }
+                                        self.ui.show_home = false;
+                                    }
+
                                     ui.add_space(8.0);
                                 }
                             });
