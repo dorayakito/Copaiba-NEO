@@ -4,7 +4,7 @@ use super::state::CopaibaApp;
 impl CopaibaApp {
     pub fn show_tab_bar(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("toolbar").min_height(32.0).show(ctx, |ui| {
-            ui.horizontal_centered(|ui| {
+            crate::app::layout::horizontal_centered(ui, self.is_rtl(), |ui| {
                 ui.add_space(4.0);
                 if ui.button(format!("➕ {}", tr!("tabs.btn.new_tab"))).clicked() {
                     self.tabs.push(super::state::TabState::default());
@@ -18,7 +18,7 @@ impl CopaibaApp {
                     let is_renaming = self.ui.renaming_tab == Some(i);
 
                     ui.style_mut().spacing.item_spacing.x = 2.0;
-                    ui.horizontal(|ui| {
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         if is_renaming {
                             let resp = ui.add(egui::TextEdit::singleline(&mut self.tabs[i].name).desired_width(80.0));
                             if resp.changed() { self.play_key_sound(); }

@@ -20,7 +20,7 @@ impl CopaibaApp {
                         ui.label(RichText::new(tr!("home.subtitle")).size(16.0).color(Color32::GRAY));
                         ui.add_space(40.0);
                         
-                        ui.horizontal(|ui| {
+                        crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                             ui.add_space(ui.available_width() / 2.0 - 150.0);
                             if ui.add(egui::Button::new(RichText::new(format!("📁 {}",tr!("home.btn.open_voicebank"))).size(18.0)).min_size(Vec2::new(300.0, 50.0))).clicked() {
                                 self.open_voicebank_dir();
@@ -69,7 +69,7 @@ impl CopaibaApp {
                                         .outer_margin(egui::Margin::symmetric(0, 8));
                                     
                                     let inner_res = frame.show(ui, |ui| {
-                                        ui.horizontal(|ui| {
+                                        crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                                             // 🖼️ Thumbnail
                                             let (rect, _) = ui.allocate_at_least(Vec2::new(80.0, 80.0), egui::Sense::hover());
                                             let mut painted = false;
@@ -113,7 +113,7 @@ impl CopaibaApp {
                                                         "root".into()
                                                     };
 
-                                                    ui.horizontal(|ui| {
+                                                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                                                         ui.add_space(8.0);
                                                         let _inner_id = ui.id().with("btn").with(g_idx).with(i);
                                                         let btn_text = format!("  ↳  {}", sub_name);

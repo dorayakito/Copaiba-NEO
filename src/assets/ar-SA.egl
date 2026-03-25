@@ -1,0 +1,218 @@
+# Menu - File
+menu.file = ملف
+menu.file.new = علامة تبويب جديدة
+menu.file.open_folder = فتح مجلد...
+menu.file.open_file = فتح oto.ini...
+menu.file.save = حفظ
+menu.file.save_as = حفظ باسم...
+menu.file.exit = خروج
+# Menu - Edit
+menu.edit = تحرير
+menu.edit.undo = تراجع
+menu.edit.redo = إعادة
+menu.edit.select_all = تحديد الكل
+menu.edit.delete = حذف
+# Menu - View
+menu.view = عرض
+menu.view.home = الشاشة الرئيسية
+# Menu - Playback
+menu.play = تشغيل
+menu.play.audio = تشغيل الملف الصوتي
+menu.play.segment = تشغيل المقطع الحالي
+menu.play.stop = إيقاف (ESC)
+menu.play.resample = اختبار التوليف
+menu.play.on_select = تشغيل المقطع عند التحديد
+# Menu - Configuration
+menu.config = إعدادات
+menu.config.general = إعدادات عامة
+menu.config.auto_save = حفظ تلقائي
+menu.config.auto_save.time_unit = دقائق
+# Menu - Plugins
+menu.plugins = إضافات
+menu.plugins.consistency_checker = فحص التناسق
+menu.plugins.duplicate_detector = كشف التكرار
+menu.plugins.pitch_analyzer = محلل النغمات
+menu.plugins.alias_sorter = ترتيب الأسماء المستعارة...
+menu.plugins.batch_rename = إعادة تسمية جماعية
+menu.plugins.batch_edit = تعديل جماعي
+# Menu - Help
+menu.help = مساعدة
+menu.help.shortcuts = إختصارات لوحة المفاتيح
+# Menu - Others
+menu.others.re_record = إعادة تسجيل الصوت
+# Modal - Exit
+modal.exit.window.name = تغييرات معلقة
+modal.exit.label.unsaved_changes = لديك تغييرات غير محفوظة. انظر الاختلافات أدناه:
+modal.exit.label.unchanged_but_marked = لا توجد تغييرات في المعلمات (لكن تم وضع علامة عليها كمعدلة).
+# Modal - Preset
+modal.preset.window.name = تحرير الإعدادات المسبقة
+modal.preset.grid.shortcut = الاختصار
+modal.preset.grid.name = الاسم
+modal.preset.grid.consonant = صامت
+modal.preset.grid.cutoff = قطع
+modal.preset.grid.preutter = نطق أولي
+modal.preset.grid.overlap = تداخل
+# Modal - Settings
+modal.settings.window.name = الإعدادات
+modal.settings.general.heading = عام
+modal.settings.general.label.language = اللغة:
+modal.settings.general.ckb.play_ui_sounds = تمكين أصوات لوحة المفاتيح
+modal.settings.waveform.heading = عرض الموجة
+modal.settings.waveform.ckb.show_minimap = إظهار الخريطة المصغرة
+modal.settings.waveform.ckb.persistent_zoom = الاحتفاظ بالتكبير عند تبديل الاسم المستعار
+modal.settings.waveform.label.color = لون الموجة:
+modal.settings.waveform.label.positive = إيجابي
+modal.settings.waveform.label.negative = سلبي
+modal.settings.waveform.label.spline = خط منحني:
+modal.settings.encoding.heading = التشفير
+modal.settings.encoding.label = ترميز النص:
+modal.settings.spectrogram.heading = المخطط الطيفي
+modal.settings.spectrogram.ckb.hd = تمكين المخطط الطيفي عالي الدقة
+modal.settings.spectrogram.label.fft_size = حجم FFT:
+modal.settings.spectrogram.label.hop = حجم الوثبة:
+modal.settings.spectrogram.label.freq_min = الحد الأدنى للتردد (هرتز):
+modal.settings.spectrogram.label.freq_max = الحد الأقصى للتردد (هرتز):
+modal.settings.spectrogram.label.noise = حد الضوضاء (ديسيبل):
+modal.settings.spectrogram.label.gama = غاما (التباين):
+modal.settings.spectrofram.label.palette = اللوحة:
+modal.settings.spectrogram.ckb.adaptative_norm = التطبيع التكيفي
+# Modal - Shortcuts
+modal.shortcuts.window.name = اختصارات لوحة المفاتيح
+modal.shortcuts.label.general = عام
+modal.shortcuts.label.open_oto = فتح oto.ini
+modal.shortcuts.label.save = حفظ
+modal.shortcuts.label.undo = تراجع
+modal.shortcuts.label.redo = إعادة
+modal.shortcuts.label.config = إعدادات
+modal.shortcuts.label.shortcuts = اختصارات
+modal.shortcuts.label.table = جدول
+modal.shortcuts.label.select_all = تحديد الكل
+modal.shortcuts.label.del_selection = حذف التحديد
+modal.shortcuts.label.duplicate = تكرار الحالي
+modal.shortcuts.label.rename = إعادة تسمية
+modal.shortcuts.label.audio = صوت
+modal.shortcuts.label.play_segment = تشغيل المقطع
+modal.shortcuts.label.play_audio = تشغيل الصوت كاملًا
+modal.shortcuts.label.synth_test = اختبار التوليف
+# Modal - Batch Rename
+modal.batch_rename.window.name = إعادة تسمية جماعية
+modal.batch_rename.label.info = سيتم تعديل الأسماء المستعارة المرئية في عامل تصفية علامة التبويب الحالية فقط.
+modal.batch_rename.label.subst = استبدال النص:
+modal.batch_rename.label.set = ثابت:
+modal.batch_rename.label.prefix = بادئة:
+modal.batch_rename.label.sufffix = لاحقة:
+# Modal - Batch Edit
+modal.batch_edit.window.name = تعديل جماعي
+modal.batch_edit.label.info = تطبيق قيم ثابتة على جميع الأسماء المستعارة المرئية (عامل التصفية).
+# Modal - Alias Sorter
+modal.org_alias.window.name = ترتيب الأسماء المستعارة
+modal.org_alias.label.info = تنظيم إدخالات الجدول.
+modal.org_alias.label.mode = الوضع
+modal.org_alias.label.alphabetic = أبجدي
+modal.org_alias.label.file = ملف
+modal.org_alias.label.offset = إزاحة
+modal.org_alias.ckb.group_by_file = تجميع حسب الملف
+# Modal - Consistency Checker
+modal.consistency_checker.window.name = فحص التناسق
+modal.consistency_checker.btn.scan = فحص الآن
+modal.consistency_checker.label.issues = تم العثور على مشاكل:
+modal.consistency_checker.label.line = السطر
+modal.consistency_checker.label.alias = الاسم المستعار
+modal.consistency_checker.label.message = رسالة
+# Modal - Duplcate Detector
+modal.duplicate_detector.window.name = كشف التكرار
+modal.duplicate_detector.label.info = يقوم بالبحث عن إدخالات تحدد نفس الصوتيات أو متطابقة.
+modal.duplicate_detector.btn.scan = فحص
+modal.duplicate_detector.label.type = النوع
+modal.duplicate_detector.label.alias_a = الاسم المستعار أ
+modal.duplicate_detector.label.alias_b = الاسم المستعار ب
+modal.duplicate_detector.label.action = إجراء
+modal.duplicate_detector.label.exact = مطابق
+modal.duplicate_detector.label.case = حالة الأحرف
+modal.duplicate_detector.label.functional = وظيفي
+modal.duplicate_detector.label.simmilar = مشابه
+modal.duplicate_detector.btn.goto_1 = الذهاب إلى #1
+modal.duplicate_detector.btn.goto_2 = الذهاب إلى #2
+modal.duplicate_detector.btn.del_2 = حذف #2
+# Modal - Pitch Analyzer
+modal.pitch_analyzer.window.name = محلل النغمات
+modal.pitch_analyzer.label.window = نافذة
+modal.pitch_analyzer.btn.analyze = تحليل
+modal.pitch_analyzer.label.avg = متوسط النغمة:
+# Recorder
+recorder.window.name = إعادة تسجيل الاسم المستعار
+recorder.label.re_rec = إعادة التسجيل:
+recorder.label.rec_status = جاري التسجيل...
+recorder.label.rec_stop = إيقاف التسجيل
+recorder.label.rec_compl = اكتمل التسجيل. راجع أدناه:
+recorder.label.listen = استماع
+recorder.label.redo = إعادة تسجيل
+recorder.label.subst_rec = استبدال التسجيل الحالي
+recorder.label.error = خطأ في الحفظ:
+recorder.label.success = تم الحفظ بنجاح:
+recorder.label.discard = تجاهل
+recorder.label.start_rec = بدء التسجيل
+recorder.label.no_alias = لم يتم تحديد اسم مستعار في الجدول.
+recorder.label.recording_at = جاري التسجيل في
+recorder.label.error_start_rec = خطأ في بدء التسجيل:
+recorder.label.no_rec_save = لا يوجد تسجيل لحفظه
+recorder.error.no_device = لم يتم العثور على جهاز إدخال
+recorder.error.config = فشل الحصول على تكوين الإدخال:
+recorder.error.sample_format = تنسيق العينة غير مدعوم
+recorder.error.create_stream = فشل إنشاء تيار الإدخال:
+recorder.error.play_stream = فشل بدء التيار:
+recorder.error.stream = خطأ في التيار:
+# Status
+status.label.new_file = ملف جديد
+status.label.line = السطر:
+status.label.time_elapsed = وقت الجلسة:
+status.label.saved = تم الحفظ!
+status.label.not_saved = لم يتم الحفظ
+# Table
+table.params = المعلمات
+table.filter.hint = تصفية الأسماء المستعارة...
+table.cutoff.invert = عكس الوضع (نسبي/مطلق)
+table.col.file = ملف .wav
+table.col.alias = الاسم المستعار (صوتيم)
+table.col.offset = إزاحة
+table.col.overlap = تداخل
+table.col.preutter = نطق أولي
+table.col.consonant = صامت
+table.col.cutoff = قطع
+table.col.notes = ملاحظات
+# Tabs
+tabs.btn.new_tab = علامة تبويب جديدة
+tabs.btn.close_tab = إغلاق علامة التبويب
+tabs.btn.open_folder = فتح مجلد
+# Tools
+tools.label.presets = إعدادات مسبقة
+tools.btn.edit_presets = تحرير الإعدادات المسبقة...
+tools.label.edit_modes = أوضاع التحرير
+tools.label.srp = SRP
+tools.label.srp_desc = محاذاة بالنسبة إلى النطق الأولي
+tools.label.srna = SRnA
+tools.label.srna_desc = محاذاة بالنسبة للإزاحة المتحركة
+tools.label.auto_oto = oto التلقائي
+tools.label.auto_oto_desc = جذب العلامات إلى القمم
+tools.label.zoom = تكبير دائم
+tools.label.zoom_desc = لا يتم إعادة ضبط التكبير عند تبديل الاسم المستعار
+tools.label.status = الحالة
+tools.label.aliases = الأسماء المستعارة:
+tools.label.filtered = مصفاة:
+# Audio
+audio.error.no_device = خطأ: لم يتم العثور على جهاز صوتي.
+audio.resampler.select_file = اختر resampler.exe
+audio.resampler.status.resampling = جاري إعادة أخذ العينات...
+audio.resampler.status.success = إعادة أخذ العينات بنجاح:
+audio.resampler.status.load_error = خطأ في تحميل مُعيد أخذ العينات:
+audio.resampler.status.error = خطأ مُعيد أخذ العينات:
+audio.resampler.status.exec_error = خطأ في تشغيل مُعيد أخذ العينات:
+# File Ops
+file_ops.status.aliases_loaded = تم تحميل الأسماء المستعارة.
+file_ops.status.open_error = خطأ في الفتح:
+file_ops.status.saved_success = تم الحفظ بنجاح.
+file_ops.status.save_error = خطأ في الحفظ:
+file_ops.label.new_set = مجموعة جديدة
+# State
+state.tab.default_name = مجموعة جديدة
+state.ui.status.ready = افتح ملف oto.ini للبدء.

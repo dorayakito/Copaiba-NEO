@@ -14,4 +14,6 @@ pub mod recorder;
 pub mod ui_recorder;
 pub mod ui_home;
 
+pub mod layout;
+
 pub use state::CopaibaApp;

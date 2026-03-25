@@ -12,9 +12,11 @@ impl CopaibaApp {
             .show(ctx, |ui| {
                 let mut play_sound = false;
                 ui.add_space(4.0);
+                
+                let is_rtl = self.is_rtl();
                 {
                     let tab = self.cur_mut();
-                    ui.horizontal(|ui| {
+                    crate::app::layout::horizontal(ui, is_rtl, |ui| {
                         ui.label(RichText::new(format!("{}  ({}/{})", tr!("table.params"), tab.filtered.len(), tab.entries.len())).strong());
                     });
                 }

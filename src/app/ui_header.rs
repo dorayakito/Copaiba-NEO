@@ -34,7 +34,7 @@ impl CopaibaApp {
             };
 
             ui.add_space(4.0);
-            ui.horizontal(|ui| {
+            crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                 // Character Image (60x60)
                 let (rect, _resp) = ui.allocate_at_least(Vec2::new(60.0, 60.0), egui::Sense::hover());
                 if let Some(tex_id) = char_tex {

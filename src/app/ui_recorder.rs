@@ -22,7 +22,7 @@ impl CopaibaApp {
                 let tab = self.cur();
                 if let Some(&idx) = tab.filtered.get(tab.selected) {
                     let entry = tab.entries[idx].clone();
-                    ui.horizontal(|ui| {
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.heading(format!("{} {}", tr!("recorder.label.re_rec"), entry.alias));
                         ui.label(RichText::new(format!(" ({})", entry.filename)).weak());
                     });
@@ -58,7 +58,7 @@ impl CopaibaApp {
                             });
 
                         ui.add_space(8.0);
-                        ui.horizontal(|ui| {
+                        crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                             if ui.button(format!("▶ {}", tr!("recorder.label.listen"))).clicked() {
                                 self.play_wav_data(recorded);
                             }
@@ -70,7 +70,7 @@ impl CopaibaApp {
 
                         ui.add_space(16.0);
                         ui.separator();
-                        ui.horizontal(|ui| {
+                        crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                             if ui.button(RichText::new(format!("✅ {}", tr!("recorder.label.subst_rec"))).color(egui::Color32::GOLD)).clicked() {
                                 if let Err(e) = self.save_recorded_wav(&entry.filename) {
                                     self.ui.status = format!("{} {}", tr!("recorder.label.error"), e);

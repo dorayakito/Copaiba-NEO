@@ -190,7 +190,7 @@ impl CopaibaApp {
                         ui.close_menu();
                     }
                     ui.separator();
-                    ui.horizontal(|ui| {
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.checkbox(&mut self.config.auto_save_enabled, tr!("menu.config.auto_save"));
                         if self.config.auto_save_enabled {
                             ui.add(

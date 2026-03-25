@@ -16,6 +16,7 @@ fn main() -> eframe::Result {
     // Load translations at compile time
     let _ = egui_i18n::load_translations_from_text("en-US", include_str!("assets/en-US.egl"));
     let _ = egui_i18n::load_translations_from_text("pt-BR", include_str!("assets/pt-BR.egl"));
+    let _ = egui_i18n::load_translations_from_text("ar-SA", include_str!("assets/ar-SA.egl"));
 
     println!("Starting Copaiba NEO...");
     
@@ -108,6 +109,34 @@ fn setup_fonts(ctx: &egui::Context) {
                 fonts.font_data.insert("cjk_font".to_owned(), Arc::new(egui::FontData::from_owned(data)));
                 fonts.families.get_mut(&egui::FontFamily::Proportional).unwrap().push("cjk_font".to_owned());
                 fonts.families.get_mut(&egui::FontFamily::Monospace).unwrap().push("cjk_font".to_owned());
+                break;
+            }
+        }
+    }
+
+    // Arabic Fonts
+    let arabic_fonts = [
+        // Linux
+        "/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoKufiArabic-Regular.ttf",
+        "/usr/share/fonts/opentype/noto/NotoNaskhArabic-Regular.ttf",
+        "/usr/share/fonts/opentype/noto/NotoSansArabic-Regular.ttf",
+        "/usr/share/fonts/opentype/noto/NotoKufiArabic-Regular.ttf",
+        "/usr/share/fonts/truetype/droid/DroidKufi-Regular.ttf",
+        "/usr/share/fonts/truetype/droid/DroidNaskh-Regular.ttf",
+        // Windows
+        "C:\\Windows\\Fonts\\tahoma.ttf",      // Tahoma (Traditional Arabic UI)
+        "C:\\Windows\\Fonts\\segoeui.ttf",     // Segoe UI (Modern Windows UI)
+        "C:\\Windows\\Fonts\\arial.ttf",       // Arial
+    ];
+
+    for path in arabic_fonts {
+        if Path::new(path).exists() {
+            if let Ok(data) = std::fs::read(path) {
+                fonts.font_data.insert("arabic_font".to_owned(), Arc::new(egui::FontData::from_owned(data)));
+                fonts.families.get_mut(&egui::FontFamily::Proportional).unwrap().push("arabic_font".to_owned());
+                fonts.families.get_mut(&egui::FontFamily::Monospace).unwrap().push("arabic_font".to_owned());
                 break;
             }
         }

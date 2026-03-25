@@ -54,7 +54,7 @@ impl CopaibaApp {
                     if !has_diff { ui.label(tr!("modal.exit.label.unchanged_but_marked")); }
                 });
                 ui.add_space(16.0);
-                ui.horizontal(|ui| {
+                crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                     if ui.button(tr!("btn.save_exit")).clicked() {
                         self.save_oto();
                         if !self.cur().dirty { ctx.send_viewport_cmd(egui::ViewportCommand::Close); }
@@ -106,7 +106,7 @@ impl CopaibaApp {
             .show(ctx, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.heading(format!("🌍 {}", tr!("modal.settings.general.heading")));
-                    ui.horizontal(|ui| {
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.label(tr!("modal.settings.general.label.language"));
                         egui::ComboBox::from_id_salt("language_selector")
                             .selected_text(&self.config.language)
@@ -117,6 +117,9 @@ impl CopaibaApp {
                                 if ui.selectable_value(&mut self.config.language, "pt-BR".to_string(), "pt-BR").clicked() {
                                     egui_i18n::set_language("pt-BR");
                                 }
+                                if ui.selectable_value(&mut self.config.language, "ar-SA".to_string(), "ar-SA (عربي)").clicked() {
+                                    egui_i18n::set_language("ar-SA");
+                                }
                             });
                     });
                     ui.checkbox(&mut self.config.play_ui_sounds, tr!("modal.settings.general.ckb.play_ui_sounds"));
@@ -125,14 +128,14 @@ impl CopaibaApp {
                     ui.heading(format!("🎬 {}", tr!("modal.settings.waveform.heading")));
                     ui.checkbox(&mut self.visual.show_minimap, tr!("modal.settings.waveform.ckb.show_minimap"));
                     ui.checkbox(&mut self.visual.persistent_zoom, tr!("modal.settings.waveform.ckb.persistent_zoom"));
-                    ui.horizontal(|ui| {
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.label(tr!("modal.settings.waveform.label.color"));
                         if ui.color_edit_button_srgba(&mut self.visual.wave.top_color).changed() { self.clear_wave_cache(); }
                         ui.label(tr!("modal.settings.waveform.label.positive"));
                         if ui.color_edit_button_srgba(&mut self.visual.wave.bot_color).changed() { self.clear_wave_cache(); }
                         ui.label(tr!("modal.settings.waveform.label.negative"));
                     });
-                    ui.horizontal(|ui| {
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.label(tr!("modal.settings.waveform.label.spline"));
                         if ui.color_edit_button_srgba(&mut self.visual.wave.line_color).changed() { self.clear_wave_cache(); }
                         ui.add(egui::Slider::new(&mut self.visual.wave.thickness, 0.5..=5.0).step_by(0.1));
@@ -157,7 +160,7 @@ impl CopaibaApp {
                     let mut fft_changed = false;
                     let mut render_changed = false;
 
-                    ui.horizontal(|ui| {
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.label(tr!("modal.settings.spectrogram.label.fft_size"));
                         for &sz in &[512usize, 1024, 2048, 4096, 8192] {
                             if ui.selectable_label(self.visual.spec.fft_size == sz, sz.to_string()).clicked() {
@@ -165,7 +168,7 @@ impl CopaibaApp {
                             }
                         }
                     });
-                    ui.horizontal(|ui| {
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.label(tr!("modal.settings.spectrogram.label.hop"));
                         for &sz in &[64usize, 128, 256, 512] {
                             if ui.selectable_label(self.visual.spec.hop_size == sz, sz.to_string()).clicked() {
@@ -173,23 +176,23 @@ impl CopaibaApp {
                             }
                         }
                     });
-                    ui.horizontal(|ui| {
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.label(tr!("modal.settings.spectrogram.label.freq_min"));
                         if ui.add(egui::DragValue::new(&mut self.visual.spec.min_freq).speed(5.0).range(1.0..=5000.0).suffix(" Hz")).changed() { render_changed = true; }
                     });
-                    ui.horizontal(|ui| {
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.label(tr!("modal.settings.spectrogram.label.freq_max"));
                         if ui.add(egui::DragValue::new(&mut self.visual.spec.max_freq).speed(100.0).range(0.0..=24000.0).suffix(" Hz")).changed() { render_changed = true; }
                     });
-                    ui.horizontal(|ui| {
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.label(tr!("modal.settings.spectrogram.label.noise"));
                         if ui.add(egui::Slider::new(&mut self.visual.spec.min_db, -120.0_f32..=-20.0).suffix(" dB")).changed() { render_changed = true; }
                     });
-                    ui.horizontal(|ui| {
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.label(tr!("modal.settings.spectrogram.label.gama"));
                         if ui.add(egui::Slider::new(&mut self.visual.spec.gamma, 0.1_f32..=1.5).step_by(0.05)).changed() { render_changed = true; }
                     });
-                    ui.horizontal(|ui| {
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.label(tr!("modal.settings.spectrofram.label.palette"));
                         for (kind, label) in &[
                             (ColormapKind::Fire, "🔥 Fire"),
@@ -266,15 +269,15 @@ impl CopaibaApp {
                 ui.label(tr!("modal.batch_rename.label.info"));
                 ui.separator();
                 ui.label(tr!("modal.batch_rename.label.subst"));
-                ui.horizontal(|ui| {
+                crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                     ui.text_edit_singleline(&mut self.rename_find);
                     ui.label("→");
                     ui.text_edit_singleline(&mut self.rename_replace);
                 });
                 ui.add_space(8.0);
                 ui.label(tr!("modal.batch_rename.label.set"));
-                ui.horizontal(|ui| { ui.label(tr!("modal.batch_rename.label.prefix")); ui.text_edit_singleline(&mut self.rename_prefix); });
-                ui.horizontal(|ui| { ui.label(tr!("modal.batch_rename.label.sufffix")); ui.text_edit_singleline(&mut self.rename_suffix); });
+                crate::app::layout::horizontal(ui, self.is_rtl(), |ui| { ui.label(tr!("modal.batch_rename.label.prefix")); ui.text_edit_singleline(&mut self.rename_prefix); });
+                crate::app::layout::horizontal(ui, self.is_rtl(), |ui| { ui.label(tr!("modal.batch_rename.label.sufffix")); ui.text_edit_singleline(&mut self.rename_suffix); });
                 ui.add_space(8.0);
                 if ui.button(tr!("btn.exe")).clicked() {
                     let filtered = self.cur().filtered.clone();
@@ -315,7 +318,7 @@ impl CopaibaApp {
                 ui.separator();
                 let labels = ["Offset", "Preutterance", "Overlap", "Consonant", "Cutoff"];
                 for i in 0..5 {
-                    ui.horizontal(|ui| {
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.checkbox(&mut self.batch_edit_enabled[i], labels[i]);
                         if self.batch_edit_enabled[i] {
                             ui.add(egui::DragValue::new(&mut self.batch_edit_values[i]).speed(1.0).suffix(" ms"));
@@ -385,7 +388,7 @@ impl CopaibaApp {
             .open(&mut open)
             .default_size([700.0, 500.0])
             .show(ctx, |ui| {
-                ui.horizontal(|ui| {
+                crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                     if ui.button(format!("🚀 {}", tr!("modal.consistency_checker.btn.scan"))).clicked() {
                         let tab = self.cur();
                         self.ui.consistency_issues = plugins::check_consistency(&tab.entries, tab.oto_dir.as_deref());
@@ -436,7 +439,7 @@ impl CopaibaApp {
                                 });
                                 ui.label(RichText::new(&dup.alias1).strong());
                                 ui.label(RichText::new(&dup.alias2).strong());
-                                ui.horizontal(|ui| {
+                                crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                                     if ui.button(tr!("modal.duplicate_detector.btn.goto_1")).clicked() { jump_to = Some(dup.row1); }
                                     if ui.button(tr!("modal.duplicate_detector.btn.goto_2")).clicked() { jump_to = Some(dup.row2); }
                                     if ui.button(tr!("modal.duplicate_detector.btn.del_2")).clicked() { delete_row = Some(dup.row2); }
@@ -467,7 +470,7 @@ impl CopaibaApp {
                 .open(&mut show_pitch)
                 .default_size([700.0, 450.0])
                 .show(ctx, |ui| {
-                    ui.horizontal(|ui| {
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.label(tr!("modal.pitch_analyzer.label.window"));
                         ui.add(egui::Slider::new(&mut self.pitch_window_ms, 5.0..=40.0));
                         if ui.button(format!("🎵 {}", tr!("modal.pitch_analyzer.btn.analyze"))).clicked() {

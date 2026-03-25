@@ -390,4 +390,8 @@ impl CopaibaApp {
         egui_i18n::set_language(lang);
         self.config.language = lang.to_string();
     }
+
+    pub fn is_rtl(&self) -> bool {
+        self.config.language == "ar-SA"
+    }
 }

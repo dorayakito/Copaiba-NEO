@@ -5,7 +5,7 @@ use super::state::CopaibaApp;
 impl CopaibaApp {
     pub fn show_status_bar(&mut self, ctx: &egui::Context, now: f64) {
         egui::TopBottomPanel::bottom("status_bar").show(ctx, |ui| {
-            ui.horizontal_wrapped(|ui| {
+            crate::app::layout::horizontal_wrapped(ui, self.is_rtl(), |ui| {
                 let tab = self.cur();
 
                 // Display project path or translated "Novo Arquivo"/"New File"
@@ -25,7 +25,7 @@ impl CopaibaApp {
 
                     let done_count = tab.entries.iter().filter(|e| e.done).count();
                     let pct_done = if total > 0 { done_count as f32 / total as f32 } else { 0.0 };
-                    ui.horizontal(|ui| {
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.add(egui::ProgressBar::new(pct_done).desired_width(100.0));
                         ui.label(RichText::new(format!("{:.0}%", pct_done * 100.0)).small().color(egui::Color32::GRAY));
                         ui.label(RichText::new(format!("({}/{})", done_count, total)).small().color(egui::Color32::GRAY));
