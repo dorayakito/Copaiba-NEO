@@ -14,6 +14,7 @@ pub struct WavData {
 /// Pre-computed spectrogram data (not Clone because it's large)
 pub struct WavWithSpec {
     pub wav: WavData,
+    #[allow(dead_code)]
     pub spec_data: Option<SpectrogramData>,
 }
 

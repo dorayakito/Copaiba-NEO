@@ -123,6 +123,20 @@ impl CopaibaApp {
                             });
                     });
                     ui.checkbox(&mut self.config.play_ui_sounds, tr!("modal.settings.general.ckb.play_ui_sounds"));
+                    
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
+                        ui.label(tr!("modal.settings.general.label.theme")); // I might need to add this translation, but let's use a hardcoded string if not available
+                        let old_theme = self.config.theme;
+                        egui::ComboBox::from_id_salt("theme_selector")
+                            .selected_text(format!("{:?}", self.config.theme))
+                            .show_ui(ui, |ui| {
+                                ui.selectable_value(&mut self.config.theme, crate::app::state::AppTheme::Dark, "Escuro").clicked();
+                                ui.selectable_value(&mut self.config.theme, crate::app::state::AppTheme::Light, "Claro").clicked();
+                            });
+                        if self.config.theme != old_theme {
+                            crate::apply_theme(ctx, self.config.theme);
+                        }
+                    });
                     ui.separator();
 
                     ui.heading(format!("🎬 {}", tr!("modal.settings.waveform.heading")));
@@ -235,10 +249,13 @@ impl CopaibaApp {
             .show(ctx, |ui| {
                 egui::Grid::new("shorts").striped(true).show(ui, |ui| {
                     ui.strong(tr!("modal.shortcuts.label.general")); ui.label(""); ui.end_row();
-                    ui.label("Ctrl + O"); ui.label(tr!("modal.shortcuts.label.open_oto")); ui.end_row();
+                    ui.label("Ctrl + O"); ui.label(tr!("modal.shortcuts.label.open_vb")); ui.end_row();
+                    ui.label("Ctrl+Shift+O"); ui.label(tr!("modal.shortcuts.label.open_oto")); ui.end_row();
                     ui.label("Ctrl + S"); ui.label(tr!("modal.shortcuts.label.save")); ui.end_row();
+                    ui.label("Ctrl+Shift+S"); ui.label(tr!("modal.shortcuts.label.save_as")); ui.end_row();
                     ui.label("Ctrl + Z"); ui.label(tr!("modal.shortcuts.label.undo")); ui.end_row();
                     ui.label("Ctrl + Y"); ui.label(tr!("modal.shortcuts.label.redo")); ui.end_row();
+                    ui.label("Ctrl + H"); ui.label(tr!("modal.shortcuts.label.home")); ui.end_row();
                     ui.label("Ctrl + ,"); ui.label(tr!("modal.shortcuts.label.config")); ui.end_row();
                     ui.label("F1"); ui.label(tr!("modal.shortcuts.label.shortcuts")); ui.end_row();
 
@@ -246,12 +263,27 @@ impl CopaibaApp {
                     ui.label("Ctrl + A"); ui.label(tr!("modal.shortcuts.label.select_all")); ui.end_row();
                     ui.label("Ctrl + D"); ui.label(tr!("modal.shortcuts.label.del_selection")); ui.end_row();
                     ui.label("Ctrl + I"); ui.label(tr!("modal.shortcuts.label.duplicate")); ui.end_row();
+                    ui.label("Ctrl + M"); ui.label(tr!("modal.shortcuts.label.mark_done")); ui.end_row();
+                    ui.label("Ctrl + C"); ui.label(tr!("modal.shortcuts.label.copy_params")); ui.end_row();
                     ui.label("Ctrl + R"); ui.label(tr!("modal.shortcuts.label.rename")); ui.end_row();
+                    ui.label("Ctrl + P"); ui.label(tr!("modal.shortcuts.label.open_folder")); ui.end_row();
+
+                    ui.strong(tr!("modal.shortcuts.label.snap")); ui.label(""); ui.end_row();
+                    ui.label("Shift / Alt + 1"); ui.label(tr!("modal.shortcuts.label.srp")); ui.end_row();
+                    ui.label("Shift / Alt + 2"); ui.label(tr!("modal.shortcuts.label.sro")); ui.end_row();
+
+                    ui.strong(tr!("modal.shortcuts.label.presets")); ui.label(""); ui.end_row();
+                    ui.label("Ctrl + 1..5"); ui.label(tr!("modal.shortcuts.label.presets")); ui.end_row();
 
                     ui.strong(tr!("modal.shortcuts.label.audio")); ui.label(""); ui.end_row();
                     ui.label("Espaço"); ui.label(tr!("modal.shortcuts.label.play_segment")); ui.end_row();
                     ui.label("Shift + Espaço"); ui.label(tr!("modal.shortcuts.label.play_audio")); ui.end_row();
                     ui.label("Ctrl+Shift+Esp"); ui.label(tr!("modal.shortcuts.label.synth_test")); ui.end_row();
+                    ui.label("F9"); ui.label(tr!("modal.shortcuts.label.recorder")); ui.end_row();
+
+                    ui.strong(tr!("modal.shortcuts.label.navigation")); ui.label(""); ui.end_row();
+                    ui.label("↑ / ↓"); ui.label(tr!("modal.shortcuts.label.nav_alias")); ui.end_row();
+                    ui.label("TAB / S+TAB / ⟷"); ui.label(tr!("modal.shortcuts.label.nav_cells")); ui.end_row();
                 });
             });
         if !open { self.ui.show_help = false; }

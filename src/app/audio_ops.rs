@@ -158,7 +158,11 @@ impl CopaibaApp {
                     if output.status.success() {
                         match load_wav(&output_wav) {
                             Ok(ws) => {
+                                let dur_ms = ws.wav.duration_ms;
                                 self.play_wav_data(ws.wav);
+                                // Sincroniza o cursor com a posição real no waveform original
+                                self.audio.playback_offset_ms = entry.offset;
+                                self.audio.playback_limit_ms = Some(entry.offset + dur_ms);
                                 self.ui.status = format!("{} {}", tr!("audio.resampler.status.success"), entry.alias);
                             }
                             Err(e) => { self.ui.status = format!("{} {}", tr!("audio.resampler.status.load_error"), e); }

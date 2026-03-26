@@ -5,11 +5,14 @@ use std::path::Path;
 
 #[derive(Clone, Debug)]
 pub struct ValidationIssue {
+    #[allow(dead_code)]
     pub severity: String, // "error", "warning", "info"
     pub message: String,
     pub row: usize,
     pub alias: String,
+    #[allow(dead_code)]
     pub field: Option<String>,
+    #[allow(dead_code)]
     pub suggested_fix: Option<f64>,
 }
 
@@ -38,9 +41,12 @@ pub struct Duplicate {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum SortMode {
     Alpha,
+    #[allow(dead_code)]
     AlphaRev,
     FileName,
+    #[allow(dead_code)]
     Type,
+    #[allow(dead_code)]
     Length,
     Offset,
 }

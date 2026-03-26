@@ -97,21 +97,30 @@ impl CopaibaApp {
                                         let old_off = entry.offset;
                                         let new_off = ms.max(0.0);
                                         let delta = new_off - old_off;
-                                        if tab.wave_view.srna {
-                                            entry.offset = new_off;
-                                            entry.overlap = (entry.overlap - delta).max(0.0);
-                                            entry.preutter = (entry.preutter - delta).max(0.0);
-                                            entry.consonant = (entry.consonant - delta).max(0.0);
-                                            if entry.cutoff < 0.0 { entry.cutoff += delta; }
-                                        } else {
+                                        if tab.wave_view.srp || tab.wave_view.sro {
                                             entry.offset = new_off;
                                             if entry.cutoff >= 0.0 { entry.cutoff = (entry.cutoff - delta).max(0.0); }
+                                        } else {
+                                            entry.offset = new_off;
+                                            entry.overlap = entry.overlap - delta;
+                                            entry.preutter = entry.preutter - delta;
+                                            entry.consonant = entry.consonant - delta;
+                                            if entry.cutoff < 0.0 { entry.cutoff += delta; }
                                         }
                                         do_dirty = true;
                                     }
                                     if down[1] { // Overlap
-                                        let o_ms = ms.min(curr_c_ms);
-                                        entry.overlap = o_ms - entry.offset;
+                                        if tab.wave_view.sro {
+                                            let old_abs = entry.offset + entry.overlap;
+                                            let delta = ms - old_abs;
+                                            let old_off = entry.offset;
+                                            entry.offset = (entry.offset + delta).max(0.0);
+                                            let off_real_delta = entry.offset - old_off;
+                                            if entry.cutoff >= 0.0 { entry.cutoff = (entry.cutoff - off_real_delta).max(0.0); }
+                                        } else {
+                                            let o_ms = ms.min(curr_c_ms);
+                                            entry.overlap = o_ms - entry.offset;
+                                        }
                                         do_dirty = true;
                                     }
                                     if down[2] { // Preutterance
@@ -178,17 +187,24 @@ impl CopaibaApp {
         let ctrl = ctx.input(|i| i.modifiers.ctrl);
         let shift = ctx.input(|i| i.modifiers.shift);
 
-        // SRP / SRnA toggle
-        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::SHIFT, egui::Key::Num1)) {
+        let sc1 = egui::KeyboardShortcut::new(egui::Modifiers::SHIFT, egui::Key::Num1);
+        let sc2 = egui::KeyboardShortcut::new(egui::Modifiers::SHIFT, egui::Key::Num2);
+        let a1 = egui::KeyboardShortcut::new(egui::Modifiers::ALT, egui::Key::Num1);
+        let a2 = egui::KeyboardShortcut::new(egui::Modifiers::ALT, egui::Key::Num2);
+
+        let s1 = ctx.input_mut(|i| i.consume_shortcut(&sc1) || i.consume_shortcut(&a1));
+        let s2 = ctx.input_mut(|i| i.consume_shortcut(&sc2) || i.consume_shortcut(&a2));
+
+        if s1 {
             let tab = self.cur_mut();
             tab.wave_view.srp = !tab.wave_view.srp;
-            if tab.wave_view.srp { tab.wave_view.srna = false; }
+            if tab.wave_view.srp { tab.wave_view.sro = false; }
             self.play_key_sound();
         }
-        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::SHIFT, egui::Key::Num2)) {
+        if s2 {
             let tab = self.cur_mut();
-            tab.wave_view.srna = !tab.wave_view.srna;
-            if tab.wave_view.srna { tab.wave_view.srp = false; }
+            tab.wave_view.sro = !tab.wave_view.sro;
+            if tab.wave_view.sro { tab.wave_view.srp = false; }
             self.play_key_sound();
         }
 
@@ -232,7 +248,16 @@ impl CopaibaApp {
         }
 
         // Open
-        if ctrl && ctx.input(|i| i.key_pressed(egui::Key::O)) { self.open_oto(); self.play_key_sound(); }
+        if ctrl && ctx.input(|i| i.key_pressed(egui::Key::O)) { 
+            if shift { self.open_oto(); } else { self.open_voicebank_dir(); }
+            self.play_key_sound(); 
+        }
+
+        // Home
+        if ctrl && ctx.input(|i| i.key_pressed(egui::Key::H)) {
+            self.ui.show_home = true;
+            self.play_key_sound();
+        }
 
         // Settings
         if ctrl && ctx.input(|i| i.key_pressed(egui::Key::Comma)) { self.ui.show_settings = !self.ui.show_settings; self.play_key_sound(); }

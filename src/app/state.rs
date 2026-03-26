@@ -68,6 +68,7 @@ impl Default for TabState {
 #[derive(Clone, Default)]
 pub struct Preset {
     pub name: String,
+    #[allow(dead_code)]
     pub offset: f64,
     pub consonant: f64,
     pub cutoff: f64,
@@ -91,6 +92,13 @@ pub enum ShortcutProfile {
     VLabeler,
     SetParam,
     Custom,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum AppTheme {
+    #[default]
+    Dark,
+    Light,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -195,6 +203,7 @@ pub struct UiState {
     pub show_help: bool,
     pub renaming_tab: Option<usize>,
     pub is_renaming: bool,
+    #[allow(dead_code)]
     pub search_string: String,
     pub auto_scroll_to_selected: bool,
     
@@ -267,6 +276,7 @@ pub struct AppConfig {
     pub resampler_path: Option<PathBuf>,
     pub recent_voicebanks: Vec<RecentVoicebank>,
     pub play_ui_sounds: bool,
+    pub theme: AppTheme,
 }
 
 impl Default for AppConfig {
@@ -294,6 +304,7 @@ impl Default for AppConfig {
             resampler_path: None,
             recent_voicebanks: Vec::new(),
             play_ui_sounds: true,
+            theme: AppTheme::Dark,
         }
     }
 }
@@ -334,6 +345,7 @@ pub struct CopaibaApp {
 
     // Logic
     pub session_start_time: f64,
+    #[allow(dead_code)]
     pub last_auto_save_time: f64,
     pub project_path: Option<PathBuf>,
 }

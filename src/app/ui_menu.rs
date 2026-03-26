@@ -98,21 +98,21 @@ impl CopaibaApp {
                     ui.menu_button(format!("📍 {}", tr!("menu.edit.snap_mode")), |ui| {
                         let tab = self.cur_mut();
                         if ui
-                            .button(format!("{}\tShift+1", tr!("menu.edit.snap_mode.srp")))
+                            .button(format!("{}\tAlt+1", tr!("menu.edit.snap_mode.srp")))
                             .clicked()
                         {
                             tab.wave_view.srp = !tab.wave_view.srp;
                             if tab.wave_view.srp {
-                                tab.wave_view.srna = false;
+                                tab.wave_view.sro = false;
                             }
                             ui.close_menu();
                         }
                         if ui
-                            .button(format!("{}\tShift+2", tr!("menu.edit.snap_mode.srna")))
+                            .button(format!("{}\tAlt+2", tr!("menu.edit.snap_mode.sro")))
                             .clicked()
                         {
-                            tab.wave_view.srna = !tab.wave_view.srna;
-                            if tab.wave_view.srna {
+                            tab.wave_view.sro = !tab.wave_view.sro;
+                            if tab.wave_view.sro {
                                 tab.wave_view.srp = false;
                             }
                             ui.close_menu();

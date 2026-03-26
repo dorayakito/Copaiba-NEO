@@ -11,6 +11,7 @@ use std::path::Path;
 use std::sync::Arc;
 use egui::{Color32, Stroke, Vec2};
 use app::CopaibaApp;
+use app::state::AppTheme;
 
 fn main() -> eframe::Result {
     // Load translations at compile time
@@ -44,12 +45,14 @@ fn main() -> eframe::Result {
         options,
         Box::new(|cc| {
             egui_extras::install_image_loaders(&cc.egui_ctx);
-            println!("Applying theme...");
-            apply_dark_theme(&cc.egui_ctx);
             println!("Initializing app...");
             let mut app = CopaibaApp::default();
             println!("Loading preferences...");
             app.load_prefs();
+            
+            // Apply theme from config
+            apply_theme(&cc.egui_ctx, app.config.theme);
+
             // Set the language from config
             let lang = app.config.language.clone();
             app.set_language(&lang);
@@ -168,6 +171,9 @@ impl eframe::App for CopaibaApp {
             }
         }
 
+        // ── Keyboard shortcuts (before waveform/panels to avoid consuming events) ─
+        self.handle_shortcuts(ctx);
+
         // ── Panels (order matters: top/bottom before central) ──────────────────
         self.show_menu_bar(ctx);
         self.show_status_bar(ctx, now);
@@ -182,9 +188,6 @@ impl eframe::App for CopaibaApp {
             self.show_waveform_panel(ctx);
         }
 
-        // ── Keyboard shortcuts (before waveform to avoid consuming events) ─────
-        self.handle_shortcuts(ctx);
-
         // ── Modal windows ──────────────────────────────────────────────────────
         self.show_modals(ctx);
 
@@ -197,9 +200,46 @@ impl eframe::App for CopaibaApp {
     }
 }
 
-// ── Dark theme ────────────────────────────────────────────────────────────────
+// ── Themes ───────────────────────────────────────────────────────────────────
 
-fn apply_dark_theme(ctx: &egui::Context) {
+pub fn apply_theme(ctx: &egui::Context, theme: AppTheme) {
+    match theme {
+        AppTheme::Dark => apply_dark_theme(ctx),
+        AppTheme::Light => apply_light_theme(ctx),
+    }
+}
+
+pub fn apply_light_theme(ctx: &egui::Context) {
+    let mut visuals = egui::Visuals::light();
+    
+    // Custom light theme adjustments
+    visuals.panel_fill = Color32::from_rgb(245, 245, 250);
+    visuals.window_fill = Color32::from_rgb(255, 255, 255);
+    visuals.extreme_bg_color = Color32::from_rgb(235, 235, 240);
+    visuals.faint_bg_color = Color32::from_rgb(240, 240, 245);
+    
+    visuals.widgets.noninteractive.bg_fill = Color32::from_rgb(230, 230, 235);
+    visuals.widgets.noninteractive.corner_radius = egui::CornerRadius::same(6);
+    
+    visuals.widgets.inactive.bg_fill = Color32::from_rgb(220, 220, 225);
+    visuals.widgets.inactive.corner_radius = egui::CornerRadius::same(6);
+    
+    visuals.widgets.hovered.bg_fill = Color32::from_rgb(210, 210, 220);
+    visuals.widgets.hovered.corner_radius = egui::CornerRadius::same(6);
+    
+    visuals.widgets.active.bg_fill = Color32::from_rgb(180, 160, 220);
+    visuals.widgets.active.corner_radius = egui::CornerRadius::same(6);
+
+    visuals.override_text_color = Some(Color32::from_rgb(30, 30, 46));
+    visuals.hyperlink_color = Color32::from_rgb(50, 100, 200);
+    visuals.selection.bg_fill = Color32::from_rgb(200, 180, 255);
+    visuals.selection.stroke = Stroke::new(1.0, Color32::from_rgb(100, 120, 240));
+    
+    ctx.set_visuals(visuals);
+    setup_common_style(ctx);
+}
+
+pub fn apply_dark_theme(ctx: &egui::Context) {
     let mut visuals = egui::Visuals::dark();
     visuals.panel_fill = Color32::from_rgb(18, 18, 28);
     visuals.window_fill = Color32::from_rgb(24, 24, 36);
@@ -218,7 +258,10 @@ fn apply_dark_theme(ctx: &egui::Context) {
     visuals.selection.bg_fill = Color32::from_rgb(70, 50, 120);
     visuals.selection.stroke = Stroke::new(1.0, Color32::from_rgb(137, 180, 250));
     ctx.set_visuals(visuals);
+    setup_common_style(ctx);
+}
 
+fn setup_common_style(ctx: &egui::Context) {
     let mut style = (*ctx.style()).clone();
     style.spacing.item_spacing = Vec2::new(6.0, 4.0);
     style.spacing.button_padding = Vec2::new(8.0, 4.0);

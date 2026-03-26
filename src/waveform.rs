@@ -118,7 +118,7 @@ pub struct WaveformView {
     pub minimap_cache: MinimapCache,
     pub wave_cache: WaveCache,
     pub srp: bool,
-    pub srna: bool,
+    pub sro: bool,
     pub snap_to_peaks: bool,
     pub spec_height_ratio: f32, // 0.0 to 1.0 (portion of available height for spec)
     pub show_minimap: bool,
@@ -139,7 +139,7 @@ impl Default for WaveformView {
             minimap_cache: MinimapCache::default(),
             wave_cache: WaveCache::default(),
             srp: false,
-            srna: false,
+            sro: true,
             snap_to_peaks: false,
             spec_height_ratio: 0.45,
             show_minimap: true,
@@ -263,8 +263,8 @@ pub fn draw_waveform(
             view.mouse_ms = Some(view.view_start_ms + t * view.view_range_ms);
         }
 
-        let scroll_y = ui.input(|i| i.smooth_scroll_delta.y);
-        let scroll_x = ui.input(|i| i.smooth_scroll_delta.x);
+        let scroll_delta_y = ui.input(|i| i.smooth_scroll_delta.y + i.scroll_delta.y);
+        let scroll_delta_x = ui.input(|i| i.smooth_scroll_delta.x + i.scroll_delta.x);
         let zoom = ui.input(|i| i.zoom_delta());
         let mods = ui.input(|i| i.modifiers);
         
@@ -272,8 +272,8 @@ pub fn draw_waveform(
         if mods.ctrl {
             if zoom != 1.0 { 
                 zoom_factor = (1.0 / zoom) as f64; 
-            } else if scroll_y.abs() > 0.1 { 
-                zoom_factor = (-scroll_y / 300.0).exp() as f64; 
+            } else if scroll_delta_y.abs() > 0.1 { 
+                zoom_factor = (-scroll_delta_y / 300.0).exp() as f64; 
             }
         }
 
@@ -288,26 +288,29 @@ pub fn draw_waveform(
                 let t = (pos.x - wave_rect.left()) as f64 / wave_rect.width() as f64;
                 view.target_view_start_ms = center - t * view.target_view_range_ms;
             }
-        } else if mods.shift && (scroll_x.abs() > 0.1 || scroll_y.abs() > 0.1) {
-            let actual_scroll = if scroll_x.abs() > 0.1 { scroll_x } else { scroll_y };
+        } else if mods.shift && (scroll_delta_x.abs() > 0.1 || scroll_delta_y.abs() > 0.1) {
+            let actual_scroll = if scroll_delta_x.abs() > 0.1 { scroll_delta_x } else { scroll_delta_y };
             let pan = -actual_scroll as f64 * (view.target_view_range_ms / 1000.0);
             view.target_view_start_ms += pan;
-        } else if scroll_y.abs() > 0.1 {
+        } else if scroll_delta_y.abs() > 0.1 {
             if mods.alt {
-                let factor = (scroll_y / 150.0).exp() as f32;
+                let factor = (scroll_delta_y / 150.0).exp() as f32;
                 view.scale_y = (view.scale_y * factor).clamp(0.1, 10.0);
             } else {
-                view.scroll_accum += scroll_y;
-                if view.scroll_accum > 40.0 {
+                view.scroll_accum += scroll_delta_y;
+                let threshold = 30.0;
+                if view.scroll_accum > threshold {
                     nav_delta = -1;
                     view.scroll_accum = 0.0;
-                } else if view.scroll_accum < -40.0 {
+                } else if view.scroll_accum < -threshold {
                     nav_delta = 1;
                     view.scroll_accum = 0.0;
                 }
             }
         } else {
-            view.scroll_accum = 0.0;
+            // Suaviza o reset do scroll_accum para não ser instantâneo e parecer mais natural
+            view.scroll_accum *= 0.8;
+            if view.scroll_accum.abs() < 1.0 { view.scroll_accum = 0.0; }
         }
         
         if zoom_factor != 1.0 || scroll_x.abs() > 0.1 || (mods.shift && scroll_y.abs() > 0.1) {
@@ -683,22 +686,20 @@ pub fn draw_waveform(
                     let new_offset = ms.max(0.0);
                     let delta = new_offset - old_offset;
 
-                    if view.srna {
-                        // SRnA ON (Independent): Other lines stay fixed in absolute time
-                        // This means relative values must change by -delta
+                    if view.srp || view.sro {
+                        // Standard: Everything moves together
                         entry.offset = new_offset;
-                        entry.overlap = (entry.overlap - delta).max(0.0);
-                        entry.preutter = (entry.preutter - delta).max(0.0);
-                        entry.consonant = (entry.consonant - delta).max(0.0);
-                        if entry.cutoff < 0.0 {
-                            entry.cutoff += delta;
-                        }
-                    } else {
-                        // SRnA OFF (Standard): Everything moves together
-                        entry.offset = new_offset;
-                        // For Cutoff > 0 (relative to end), we must adjust it by -delta to shift it.
                         if entry.cutoff >= 0.0 {
                             entry.cutoff = (entry.cutoff - delta).max(0.0);
+                        }
+                    } else {
+                        // NO SNAP: Other lines stay fixed in absolute time
+                        entry.offset = new_offset;
+                        entry.overlap = entry.overlap - delta;
+                        entry.preutter = entry.preutter - delta;
+                        entry.consonant = entry.consonant - delta;
+                        if entry.cutoff < 0.0 {
+                            entry.cutoff += delta;
                         }
                     }
                 }
@@ -725,8 +726,17 @@ pub fn draw_waveform(
                     }
                 }
                 DragTarget::Overlap   => { 
-                    let o_ms = ms.min(c_ms);
-                    entry.overlap = o_ms - entry.offset;
+                    if view.sro {
+                        let old_abs = entry.offset + entry.overlap;
+                        let delta = ms - old_abs;
+                        let old_off = entry.offset;
+                        entry.offset = (entry.offset + delta).max(0.0);
+                        let off_real_delta = entry.offset - old_off;
+                        if entry.cutoff >= 0.0 { entry.cutoff = (entry.cutoff - off_real_delta).max(0.0); }
+                    } else {
+                        let o_ms = ms.min(c_ms);
+                        entry.overlap = o_ms - entry.offset;
+                    }
                 }
                 DragTarget::Consonant => { 
                     let cs_ms = ms.max(entry.offset).min(c_ms);

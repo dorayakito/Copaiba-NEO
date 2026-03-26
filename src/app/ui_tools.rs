@@ -42,11 +42,11 @@ impl CopaibaApp {
                     ui.separator();
                     {
                         let tab = self.cur_mut();
-                        ui.checkbox(&mut tab.wave_view.srp, format!("{} (Shift+1)", tr!("tools.label.srp")));
+                        ui.checkbox(&mut tab.wave_view.srp, format!("{} (Alt+1)", tr!("tools.label.srp")));
                         ui.label(egui::RichText::new(tr!("tools.label.srp_desc")).small());
                         ui.add_space(8.0);
-                        ui.checkbox(&mut tab.wave_view.srna, format!("{} (Shift+2)", tr!("tools.label.srna")));
-                        ui.label(egui::RichText::new(tr!("tools.label.srna_desc")).small());
+                        ui.checkbox(&mut tab.wave_view.sro, format!("{} (Alt+2)", tr!("tools.label.sro")));
+                        ui.label(egui::RichText::new(tr!("tools.label.sro_desc")).small());
                         ui.add_space(8.0);
                         ui.checkbox(&mut tab.wave_view.snap_to_peaks, tr!("tools.label.auto_oto"));
                         ui.label(egui::RichText::new(tr!("tools.label.auto_oto_desc")).small());
