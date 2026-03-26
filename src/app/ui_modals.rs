@@ -15,6 +15,7 @@ impl CopaibaApp {
         self.modal_help(ctx);
         self.modal_batch_rename(ctx);
         self.modal_batch_edit(ctx);
+        self.modal_alias_converter(ctx);
         self.modal_alias_sorter(ctx);
         self.modal_consistency_checker(ctx);
         self.modal_duplicate_detector(ctx);
@@ -141,6 +142,7 @@ impl CopaibaApp {
 
                     ui.heading(format!("🎬 {}", tr!("modal.settings.waveform.heading")));
                     ui.checkbox(&mut self.visual.show_minimap, tr!("modal.settings.waveform.ckb.show_minimap"));
+                    ui.checkbox(&mut self.visual.wave.show_pitch, tr!("modal.settings.waveform.ckb.show_pitch"));
                     ui.checkbox(&mut self.visual.persistent_zoom, tr!("modal.settings.waveform.ckb.persistent_zoom"));
                     crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.label(tr!("modal.settings.waveform.label.color"));
@@ -150,6 +152,9 @@ impl CopaibaApp {
                         ui.label(tr!("modal.settings.waveform.label.negative"));
                     });
                     crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
+                        ui.label(tr!("modal.settings.waveform.label.pitch_color"));
+                        ui.color_edit_button_srgba(&mut self.visual.wave.pitch_color);
+                        ui.add_space(8.0);
                         ui.label(tr!("modal.settings.waveform.label.spline"));
                         if ui.color_edit_button_srgba(&mut self.visual.wave.line_color).changed() { self.clear_wave_cache(); }
                         ui.add(egui::Slider::new(&mut self.visual.wave.thickness, 0.5..=5.0).step_by(0.1));
@@ -205,6 +210,14 @@ impl CopaibaApp {
                     crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.label(tr!("modal.settings.spectrogram.label.gama"));
                         if ui.add(egui::Slider::new(&mut self.visual.spec.gamma, 0.1_f32..=1.5).step_by(0.05)).changed() { render_changed = true; }
+                    });
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
+                        ui.label(tr!("modal.settings.spectrogram.label.brightness"));
+                        if ui.add(egui::Slider::new(&mut self.visual.spec.brightness, -1.0_f32..=1.0).step_by(0.01)).changed() { render_changed = true; }
+                    });
+                    crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
+                        ui.label(tr!("modal.settings.spectrogram.label.contrast"));
+                        if ui.add(egui::Slider::new(&mut self.visual.spec.contrast, 0.0_f32..=2.0).step_by(0.01)).changed() { render_changed = true; }
                     });
                     crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.label(tr!("modal.settings.spectrofram.label.palette"));
@@ -348,28 +361,46 @@ impl CopaibaApp {
             .show(ctx, |ui| {
                 ui.label(tr!("modal.batch_edit.label.info"));
                 ui.separator();
+
+                crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
+                    ui.radio_value(&mut self.batch_edit_is_relative, false, tr!("modal.batch_edit.mode.absolute"));
+                    ui.radio_value(&mut self.batch_edit_is_relative, true, tr!("modal.batch_edit.mode.relative"));
+                });
+                ui.add_space(8.0);
+
                 let labels = ["Offset", "Preutterance", "Overlap", "Consonant", "Cutoff"];
                 for i in 0..5 {
                     crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                         ui.checkbox(&mut self.batch_edit_enabled[i], labels[i]);
                         if self.batch_edit_enabled[i] {
-                            ui.add(egui::DragValue::new(&mut self.batch_edit_values[i]).speed(1.0).suffix(" ms"));
+                            let prefix = if self.batch_edit_is_relative { "±" } else { "" };
+                            ui.add(egui::DragValue::new(&mut self.batch_edit_values[i]).speed(1.0).prefix(prefix).suffix(" ms"));
                         }
                     });
                 }
+                
+                ui.add_space(8.0);
                 if ui.button(tr!("btn.apply")).clicked() {
-                    let filtered = self.cur().filtered.clone();
+                    let selection = if !self.cur().multi_selection.is_empty() {
+                        self.cur().multi_selection.iter().copied().collect::<Vec<_>>()
+                    } else {
+                        self.cur().filtered.clone()
+                    };
+
                     let enabled = self.batch_edit_enabled;
                     let values = self.batch_edit_values;
+                    let relative = self.batch_edit_is_relative;
+                    
                     self.save_undo_state();
                     let tab = self.cur_mut();
-                    for &idx in &filtered {
+                    for &idx in &selection {
                         if let Some(entry) = tab.entries.get_mut(idx) {
-                            if enabled[0] { entry.offset = values[0]; }
-                            if enabled[1] { entry.preutter = values[1]; }
-                            if enabled[2] { entry.overlap = values[2]; }
-                            if enabled[3] { entry.consonant = values[3]; }
-                            if enabled[4] { entry.cutoff = values[4]; }
+                            if enabled[0] { if relative { entry.offset += values[0]; } else { entry.offset = values[0]; } }
+                            if enabled[1] { if relative { entry.preutter += values[1]; } else { entry.preutter = values[1]; } }
+                            if enabled[2] { if relative { entry.overlap += values[2]; } else { entry.overlap = values[2]; } }
+                            if enabled[3] { if relative { entry.consonant += values[3]; } else { entry.consonant = values[3]; } }
+                            if enabled[4] { if relative { entry.cutoff += values[4]; } else { entry.cutoff = values[4]; } }
+                            entry.offset = entry.offset.max(0.0);
                         }
                     }
                     tab.dirty = true;
@@ -378,6 +409,44 @@ impl CopaibaApp {
                 }
             });
         if !open { self.ui.show_batch_edit = false; }
+    }
+
+    fn modal_alias_converter(&mut self, ctx: &egui::Context) {
+        if !self.ui.show_alias_converter { return; }
+        let mut open = true;
+        egui::Window::new(format!("🈁 {}", tr!("modal.alias_conv.window.name")))
+            .id(egui::Id::new("alias_converter"))
+            .open(&mut open)
+            .collapsible(false)
+            .resizable(false)
+            .show(ctx, |ui| {
+                ui.label(tr!("modal.alias_conv.label.info"));
+                ui.separator();
+                
+                ui.radio_value(&mut self.alias_conv_to_hiragana, false, tr!("modal.alias_conv.mode.to_romaji"));
+                ui.radio_value(&mut self.alias_conv_to_hiragana, true, tr!("modal.alias_conv.mode.to_hiragana"));
+                
+                ui.add_space(8.0);
+                if ui.button(tr!("btn.convert")).clicked() {
+                    let selection = if !self.cur().multi_selection.is_empty() {
+                        self.cur().multi_selection.iter().copied().collect::<Vec<_>>()
+                    } else {
+                        self.cur().filtered.clone()
+                    };
+                    
+                    let to_hiragana = self.alias_conv_to_hiragana;
+                    self.save_undo_state();
+                    let tab = self.cur_mut();
+                    for &idx in &selection {
+                        if let Some(entry) = tab.entries.get_mut(idx) {
+                            entry.alias = super::phonetic::convert_alias(&entry.alias, to_hiragana);
+                        }
+                    }
+                    tab.dirty = true;
+                    self.ui.show_alias_converter = false;
+                }
+            });
+        if !open { self.ui.show_alias_converter = false; }
     }
 
     fn modal_alias_sorter(&mut self, ctx: &egui::Context) {

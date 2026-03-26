@@ -247,6 +247,13 @@ impl CopaibaApp {
                         self.ui.show_batch_edit = true;
                         ui.close_menu();
                     }
+                    if ui
+                        .button(format!("🈁 {}", tr!("menu.plugins.alias_conv")))
+                        .clicked()
+                    {
+                        self.ui.show_alias_converter = true;
+                        ui.close_menu();
+                    }
                 });
 
                 ui.menu_button(tr!("menu.help"), |ui| {

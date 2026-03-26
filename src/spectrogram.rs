@@ -9,6 +9,8 @@ pub struct SpectrogramSettings {
     pub max_freq: f64,         // Hz ceiling (0 = Nyquist)
     pub min_db: f32,           // noise floor in dB (e.g. -90)
     pub gamma: f32,            // 0.1 (sharp) to 1.0 (linear)
+    pub brightness: f32,       // -1.0 to 1.0
+    pub contrast: f32,         // 0.0 to 2.0
     pub colormap: ColormapKind,
     pub adaptive_norm: bool,   // per-column normalization vs global
 }
@@ -30,6 +32,8 @@ impl Default for SpectrogramSettings {
             max_freq: 24000.0,
             min_db: -65.0,
             gamma: 1.5,
+            brightness: 0.0,
+            contrast: 1.0,
             colormap: ColormapKind::Fire,
             adaptive_norm: false,
         }
@@ -177,7 +181,11 @@ pub fn render_spectrogram_view(
             let mag = catmull_rom(m0, m1, m2, m3, t_alpha);
 
             let db = (mag.max(1e-10).log10() * 20.0) - ref_db;
-            let t = ((db.clamp(min_db, max_db) - min_db) / range).powf(gamma);
+            let mut t = ((db.clamp(min_db, max_db) - min_db) / range).powf(gamma);
+            
+            // Apply contrast and brightness
+            t = (t - 0.5) * settings.contrast + 0.5 + settings.brightness;
+            let t = t.clamp(0.0, 1.0);
 
             pixels[py * pixel_width + px] = apply_colormap(t, &settings.colormap);
         }

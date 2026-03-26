@@ -11,11 +11,17 @@ pub struct WavData {
     pub duration_ms: f64,
 }
 
-/// Pre-computed spectrogram data (not Clone because it's large)
+#[derive(Clone)]
+pub struct PitchData {
+    pub times: Vec<f64>,
+    pub frequencies: Vec<f64>,
+}
+
+/// Pre-computed spectrogram and pitch data (not Clone because it's large)
 pub struct WavWithSpec {
     pub wav: WavData,
-    #[allow(dead_code)]
     pub spec_data: Option<SpectrogramData>,
+    pub pitch_data: Option<PitchData>,
 }
 
 /// Load a WAV file, mix down to mono, normalize to f32 -1..1
@@ -52,5 +58,6 @@ pub fn load_wav(path: &Path) -> Result<WavWithSpec, String> {
             duration_ms,
         },
         spec_data: None,
+        pitch_data: None,
     })
 }

@@ -179,6 +179,7 @@ pub struct VisualSettings {
     pub spec: SpectrogramSettings,
     pub wave: WaveformSettings,
     pub show_spectrogram: bool,
+    pub show_pitch: bool,
     pub show_minimap: bool,
     pub persistent_zoom: bool,
 }
@@ -189,6 +190,7 @@ impl Default for VisualSettings {
             spec: SpectrogramSettings::default(),
             wave: WaveformSettings::default(),
             show_spectrogram: true,
+            show_pitch: true,
             show_minimap: true,
             persistent_zoom: false,
         }
@@ -214,6 +216,7 @@ pub struct UiState {
     pub show_alias_sorter: bool,
     pub show_duplicate_detector: bool,
     pub show_pitch_analyzer: bool,
+    pub show_alias_converter: bool,
     
     // Results
     pub consistency_issues: Vec<plugins::ValidationIssue>,
@@ -248,6 +251,7 @@ impl Default for UiState {
             show_batch_rename: false,
             show_batch_edit: false,
             show_alias_sorter: false,
+            show_alias_converter: false,
             show_duplicate_detector: false,
             show_pitch_analyzer: false,
             consistency_issues: Vec::new(),
@@ -317,6 +321,7 @@ pub struct CopaibaApp {
 
     pub wav_cache: HashMap<String, WavData>,
     pub spec_data_cache: HashMap<String, SpectrogramData>,
+    pub pitch_data_cache: HashMap<String, crate::audio::PitchData>,
     pub encoding: OtoEncoding,
     
     pub audio: AudioState,
@@ -342,6 +347,9 @@ pub struct CopaibaApp {
     // Batch Edit State
     pub batch_edit_enabled: [bool; 5],
     pub batch_edit_values: [f64; 5],
+    pub batch_edit_is_relative: bool,
+
+    pub alias_conv_to_hiragana: bool,
 
     // Logic
     pub session_start_time: f64,
@@ -358,6 +366,7 @@ impl Default for CopaibaApp {
 
             wav_cache: HashMap::new(),
             spec_data_cache: HashMap::new(),
+            pitch_data_cache: HashMap::new(),
             encoding: OtoEncoding::ShiftJis,
 
             audio: AudioState::default(),
@@ -386,6 +395,8 @@ impl Default for CopaibaApp {
 
             batch_edit_enabled: [false; 5],
             batch_edit_values: [0.0; 5],
+            batch_edit_is_relative: false,
+            alias_conv_to_hiragana: false,
 
             project_path: None,
             session_start_time: 0.0,

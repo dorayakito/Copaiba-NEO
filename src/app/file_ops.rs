@@ -492,6 +492,9 @@ impl CopaibaApp {
                     if let Some(sd) = crate::spectrogram::compute_spectrogram_data(&wav_with_spec.wav.samples, wav_with_spec.wav.sample_rate, &spec_set) {
                         self.spec_data_cache.insert(full_path_key.clone(), sd);
                     }
+                    if let Some(pd) = crate::app::pitch::compute_pitch_data(&wav_with_spec.wav.samples, wav_with_spec.wav.sample_rate) {
+                        self.pitch_data_cache.insert(full_path_key.clone(), pd);
+                    }
                     self.wav_cache.insert(full_path_key, wav_with_spec.wav);
 
                     let persistent = self.visual.persistent_zoom;

@@ -29,6 +29,8 @@ pub struct WaveformSettings {
     pub thickness: f32,
     pub render_mode: WaveformRenderMode,
     pub spline_threshold: f64,
+    pub show_pitch: bool,
+    pub pitch_color: Color32,
 }
 
 impl Default for WaveformSettings {
@@ -40,6 +42,8 @@ impl Default for WaveformSettings {
             thickness: 1.5,
             render_mode: WaveformRenderMode::Auto,
             spline_threshold: 4.0, // samples per pixel
+            show_pitch: true,
+            pitch_color: Color32::from_rgb(100, 200, 255),
         }
     }
 }
@@ -193,6 +197,7 @@ pub fn draw_waveform(
     ui: &mut Ui,
     wav: &WavData,
     spec_data: Option<&SpectrogramData>,
+    pitch_data: Option<&crate::audio::PitchData>,
     view: &mut WaveformView,
     entry: &mut OtoEntry,
     playback_cursor: Option<f64>,
@@ -596,6 +601,35 @@ pub fn draw_waveform(
                     uv = Rect::from_min_max(pos2(s_rel as f32, 0.0), pos2(e_rel as f32, 1.0));
                 }
                 painter.image(tex.into(), wave_rect, uv, Color32::WHITE);
+            }
+        }
+    }
+    
+    // ── Draw Pitch Curve ──────────────────────────────────────────────────
+    if wave_settings.show_pitch {
+        if let Some(pitch) = pitch_data {
+            let mut points = Vec::new();
+            for i in 0..pitch.times.len() {
+                let t = pitch.times[i];
+                let f = pitch.frequencies[i];
+                if t >= vs && t <= ve && f > 20.0 {
+                    let x = ms_to_x(t, vs, vr, &wave_rect);
+                    // Map frequency to Y (log scale for better visual musicality)
+                    let min_f = 60.0f64;
+                    let max_f = 1200.0f64;
+                    let f_norm = ((f.max(min_f).log2() - min_f.log2()) / (max_f.log2() - min_f.log2())) as f32;
+                    let y = wave_rect.bottom() - f_norm * wave_rect.height();
+                    points.push(Pos2::new(x, y.clamp(wave_rect.top(), wave_rect.bottom())));
+                } else if !points.is_empty() {
+                    // Unvoiced gap: draw current segment and start fresh
+                    if points.len() > 1 {
+                        painter.add(egui::Shape::line(points.clone(), Stroke::new(2.0, wave_settings.pitch_color)));
+                    }
+                    points.clear();
+                }
+            }
+            if points.len() > 1 {
+                painter.add(egui::Shape::line(points, Stroke::new(2.0, wave_settings.pitch_color)));
             }
         }
     }

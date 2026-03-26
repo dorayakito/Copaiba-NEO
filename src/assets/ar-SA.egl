@@ -35,6 +35,7 @@ menu.plugins.pitch_analyzer = محلل النغمات
 menu.plugins.alias_sorter = ترتيب الأسماء المستعارة...
 menu.plugins.batch_rename = إعادة تسمية جماعية
 menu.plugins.batch_edit = تعديل جماعي
+menu.plugins.alias_conv = محول الأسماء المستعارة
 # Menu - Help
 menu.help = مساعدة
 menu.help.shortcuts = إختصارات لوحة المفاتيح
@@ -60,10 +61,12 @@ modal.settings.general.label.theme = السمة:
 modal.settings.general.ckb.play_ui_sounds = تمكين أصوات لوحة المفاتيح
 modal.settings.waveform.heading = عرض الموجة
 modal.settings.waveform.ckb.show_minimap = إظهار الخريطة المصغرة
+modal.settings.waveform.ckb.show_pitch = إظهار منحنى النغمة (F0)
 modal.settings.waveform.ckb.persistent_zoom = الاحتفاظ بالتكبير عند تبديل الاسم المستعار
 modal.settings.waveform.label.color = لون الموجة:
 modal.settings.waveform.label.positive = إيجابي
 modal.settings.waveform.label.negative = سلبي
+modal.settings.waveform.label.pitch_color = لون النغمة:
 modal.settings.waveform.label.spline = خط منحني:
 modal.settings.encoding.heading = التشفير
 modal.settings.encoding.label = ترميز النص:
@@ -75,6 +78,8 @@ modal.settings.spectrogram.label.freq_min = الحد الأدنى للتردد (
 modal.settings.spectrogram.label.freq_max = الحد الأقصى للتردد (هرتز):
 modal.settings.spectrogram.label.noise = حد الضوضاء (ديسيبل):
 modal.settings.spectrogram.label.gama = غاما (التباين):
+modal.settings.spectrogram.label.brightness = السطوع:
+modal.settings.spectrogram.label.contrast = التباين:
 modal.settings.spectrofram.label.palette = اللوحة:
 modal.settings.spectrogram.ckb.adaptative_norm = التطبيع التكيفي
 # Modal - Shortcuts
@@ -118,7 +123,15 @@ modal.batch_rename.label.prefix = بادئة:
 modal.batch_rename.label.sufffix = لاحقة:
 # Modal - Batch Edit
 modal.batch_edit.window.name = تعديل جماعي
-modal.batch_edit.label.info = تطبيق قيم ثابتة على جميع الأسماء المستعارة المرئية (عامل التصفية).
+modal.batch_edit.label.info = تطبيق القيم على الأسماء المستعارة المرئية (أو المحددة).
+modal.batch_edit.mode.absolute = قيمة ثابتة
+modal.batch_edit.mode.relative = تعديل نسبي (±)
+# Modal - Alias Converter
+modal.alias_conv.window.name = محول الأسماء المستعارة
+modal.alias_conv.label.info = التحويل بين هيراغانا (اليابانية) ورومادي (الغربية).
+modal.alias_conv.mode.to_romaji = إلى رومادي
+modal.alias_conv.mode.to_hiragana = إلى هيراغانا
+btn.convert = تحويل
 # Modal - Alias Sorter
 modal.org_alias.window.name = ترتيب الأسماء المستعارة
 modal.org_alias.label.info = تنظيم إدخالات الجدول.

@@ -18,13 +18,17 @@ impl CopaibaApp {
 
             let idx_opt = self.cur().filtered.get(tab_selected).copied();
             if let Some(idx) = idx_opt {
-                let (wav_opt, sd_opt) = {
+                let full_path_key = {
                     let tab = self.cur();
                     let fname = tab.entries[idx].filename.clone();
-                    let full_path = tab.oto_dir.as_ref().map(|d| d.join(&fname).to_string_lossy().to_string()).unwrap_or(fname);
-                    let wav = self.wav_cache.get(&full_path).cloned();
-                    let sd = if self.visual.show_spectrogram { self.spec_data_cache.get(&full_path).cloned() } else { None };
-                    (wav, sd)
+                    tab.oto_dir.as_ref().map(|d| d.join(&fname).to_string_lossy().to_string()).unwrap_or(fname)
+                };
+
+                let (wav_opt, sd_opt, pd_opt) = {
+                    let wav = self.wav_cache.get(&full_path_key).cloned();
+                    let sd = if self.visual.show_spectrogram { self.spec_data_cache.get(&full_path_key).cloned() } else { None };
+                    let pd = if self.visual.wave.show_pitch { self.pitch_data_cache.get(&full_path_key).cloned() } else { None };
+                    (wav, sd, pd)
                 };
 
                 if let Some(wav) = wav_opt {
@@ -60,7 +64,7 @@ impl CopaibaApp {
                             let mut new_sel = None;
 
                             tab.wave_view.show_minimap = show_min;
-                            let res = draw_waveform(ui, &wav, sd_opt.as_ref(), &mut tab.wave_view, entry, playback_cursor_val, &spec_set, &wave_set);
+                            let res = draw_waveform(ui, &wav, sd_opt.as_ref(), pd_opt.as_ref(), &mut tab.wave_view, entry, playback_cursor_val, &spec_set, &wave_set);
                             if res.drag_started { do_undo = true; }
                             if res.modified { do_dirty = true; }
 

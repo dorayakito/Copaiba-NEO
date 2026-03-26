@@ -67,6 +67,7 @@ menu.plugins.pitch_analyzer = Análise de Pitch
 menu.plugins.alias_sorter = Ordenar Aliases...
 menu.plugins.batch_rename = Renomear em Massa
 menu.plugins.batch_edit = Edição em Lote
+menu.plugins.alias_conv = Conversor de Alias
 # Menu - Help
 menu.help = Ajuda
 menu.help.shortcuts = Atalhos de Teclado
@@ -92,10 +93,12 @@ modal.settings.general.label.theme = Tema:
 modal.settings.general.ckb.play_ui_sounds = Ativar sons do teclado
 modal.settings.waveform.heading = Visualização do Waveform
 modal.settings.waveform.ckb.show_minimap = Mostrar Waveform
+modal.settings.waveform.ckb.show_pitch = Mostrar Curva de Pitch (F0)
 modal.settings.waveform.ckb.persistent_zoom = Manter zoom ao trocar alias
 modal.settings.waveform.label.color = Cor do Waveform:
 modal.settings.waveform.label.positive = Positivo
 modal.settings.waveform.label.negative = Negativo
+modal.settings.waveform.label.pitch_color = Cor do Pitch:
 modal.settings.waveform.label.spline = Linha Spline:
 modal.settings.encoding.heading = Codificação
 modal.settings.encoding.label = Encoding de texto:
@@ -107,6 +110,8 @@ modal.settings.spectrogram.label.freq_min = Freq mín (Hz):
 modal.settings.spectrogram.label.freq_max = Freq máx (Hz):
 modal.settings.spectrogram.label.noise = Piso de ruído (dB):
 modal.settings.spectrogram.label.gama = Gama (contraste):
+modal.settings.spectrogram.label.brightness = Brilho:
+modal.settings.spectrogram.label.contrast = Contraste:
 modal.settings.spectrofram.label.palette = Paleta:
 modal.settings.spectrogram.ckb.adaptative_norm = Normalização Adaptativa
 # Modal - Shortcuts
@@ -150,7 +155,15 @@ modal.batch_rename.label.prefix = Prefixo:
 modal.batch_rename.label.sufffix = Sufixo:
 # Modal - Batch Edit
 modal.batch_edit.window.name = Edição em Lote
-modal.batch_edit.label.info = Aplicar valores fixos a todos os aliases visíveis (Filtro).
+modal.batch_edit.label.info = Aplicar valores aos aliases visíveis (ou selecionados).
+modal.batch_edit.mode.absolute = Valor Fixo
+modal.batch_edit.mode.relative = Ajuste Relativo (±)
+# Modal - Alias Converter
+modal.alias_conv.window.name = Conversor de Alias
+modal.alias_conv.label.info = Converte entre Hiragana (Japonês) e Romaji (Ocidental).
+modal.alias_conv.mode.to_romaji = Para Romaji
+modal.alias_conv.mode.to_hiragana = Para Hiragana
+btn.convert = Converter
 # Modal - Alias Sorter
 modal.org_alias.window.name = Ordenar Aliases
 modal.org_alias.label.info = Organize as entradas da tabela.
