@@ -22,6 +22,7 @@ fn main() -> eframe::Result {
     println!("Starting Copaiba NEO...");
     
     // Load Icon
+    #[cfg(not(target_arch = "wasm32"))]
     let icon_data = if let Ok(img) = image::open("favicon_mori.png") {
         use image::GenericImageView;
         let (width, height) = img.dimensions();
@@ -31,46 +32,49 @@ fn main() -> eframe::Result {
         None
     };
 
-    let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_title("Copaiba NEO")
-            .with_inner_size([1280.0, 720.0])
-            .with_min_inner_size([800.0, 500.0])
-            .with_icon(icon_data.unwrap_or_default()),
-        ..Default::default()
-    };
-    println!("Options initialized. Running native...");
-    eframe::run_native(
-        "Copaiba NEO",
-        options,
-        Box::new(|cc| {
-            egui_extras::install_image_loaders(&cc.egui_ctx);
-            println!("Initializing app...");
-            let mut app = CopaibaApp::default();
-            println!("Loading preferences...");
-            app.load_prefs();
-            
-            // Apply theme from config
-            apply_theme(&cc.egui_ctx, app.config.theme);
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let options = eframe::NativeOptions {
+            viewport: egui::ViewportBuilder::default()
+                .with_title("Copaiba NEO")
+                .with_inner_size([1280.0, 720.0])
+                .with_min_inner_size([800.0, 500.0])
+                .with_icon(icon_data.unwrap_or_default()),
+            ..Default::default()
+        };
+        println!("Options initialized. Running native...");
+        eframe::run_native(
+            "Copaiba NEO",
+            options,
+            Box::new(|cc| {
+                egui_extras::install_image_loaders(&cc.egui_ctx);
+                println!("Initializing app...");
+                let mut app = CopaibaApp::default();
+                println!("Loading preferences...");
+                app.load_prefs();
+                
+                apply_theme(&cc.egui_ctx, app.config.theme);
+                let lang = app.config.language.clone();
+                app.set_language(&lang);
+                
+                if app.tabs.len() == 1 && (app.tabs[0].name.is_empty() || app.tabs[0].name == "Novo Set") {
+                    app.tabs[0].name = egui_i18n::tr!("state.tab.default_name").to_string();
+                }
 
-            // Set the language from config
-            let lang = app.config.language.clone();
-            app.set_language(&lang);
-            
-            // Refresh default tab name if it was initialized empty
-            if app.tabs.len() == 1 && (app.tabs[0].name.is_empty() || app.tabs[0].name == "Novo Set") {
-                app.tabs[0].name = egui_i18n::tr!("state.tab.default_name").to_string();
-            }
+                println!("Loading UI sounds...");
+                app.load_ui_sounds();
+                setup_fonts(&cc.egui_ctx);
 
-            println!("Loading UI sounds...");
-            app.load_ui_sounds();
+                println!("App started!");
+                Ok(Box::new(app))
+            }),
+        )
+    }
 
-            setup_fonts(&cc.egui_ctx);
-
-            println!("App started!");
-            Ok(Box::new(app))
-        }),
-    )
+    #[cfg(target_arch = "wasm32")]
+    {
+        Ok(())
+    }
 }
 
 // ── Font setup ────────────────────────────────────────────────────────────────

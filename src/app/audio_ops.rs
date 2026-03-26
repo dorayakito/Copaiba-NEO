@@ -113,6 +113,7 @@ impl CopaibaApp {
 
     pub fn resample_current(&mut self) {
         if self.config.resampler_path.is_none() {
+            #[cfg(not(target_arch = "wasm32"))]
             if let Some(path) = rfd::FileDialog::new()
                 .set_title(tr!("audio.resampler.select_file"))
                 .add_filter("Executáveis", &["exe", "bin", "sh"])
@@ -121,6 +122,8 @@ impl CopaibaApp {
             } else {
                 return;
             }
+            #[cfg(target_arch = "wasm32")]
+            return;
         }
 
         let tab = self.cur();

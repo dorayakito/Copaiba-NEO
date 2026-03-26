@@ -124,6 +124,7 @@ impl CopaibaApp {
                         ui.label(RichText::new(tr!("header.resampler.none")).size(10.0).color(Color32::from_rgb(243, 139, 168)));
                     }
                     if ui.button(RichText::new(format!("⚙ {}", tr!("header.resampler.select"))).strong()).clicked() {
+                        #[cfg(not(target_arch = "wasm32"))]
                         if let Some(path) = rfd::FileDialog::new().pick_file() {
                             self.config.resampler_path = Some(path);
                         }
