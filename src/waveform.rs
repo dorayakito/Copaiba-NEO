@@ -263,8 +263,8 @@ pub fn draw_waveform(
             view.mouse_ms = Some(view.view_start_ms + t * view.view_range_ms);
         }
 
-        let scroll_delta_y = ui.input(|i| i.smooth_scroll_delta.y + i.scroll_delta.y);
-        let scroll_delta_x = ui.input(|i| i.smooth_scroll_delta.x + i.scroll_delta.x);
+        let scroll_delta_y = ui.input(|i| i.smooth_scroll_delta.y + i.raw_scroll_delta.y);
+        let scroll_delta_x = ui.input(|i| i.smooth_scroll_delta.x + i.raw_scroll_delta.x);
         let zoom = ui.input(|i| i.zoom_delta());
         let mods = ui.input(|i| i.modifiers);
         
@@ -313,7 +313,7 @@ pub fn draw_waveform(
             if view.scroll_accum.abs() < 1.0 { view.scroll_accum = 0.0; }
         }
         
-        if zoom_factor != 1.0 || scroll_x.abs() > 0.1 || (mods.shift && scroll_y.abs() > 0.1) {
+        if zoom_factor != 1.0 || scroll_delta_x.abs() > 0.1 || (mods.shift && scroll_delta_y.abs() > 0.1) {
             view.target_view_start_ms = view.target_view_start_ms.clamp(0.0, (wav.duration_ms - view.target_view_range_ms).max(0.0));
         }
     } else {
