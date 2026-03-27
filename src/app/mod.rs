@@ -18,5 +18,6 @@ pub mod phonetic;
 pub mod pitch;
 pub mod layout;
 pub mod auto_oto;
+pub mod toast;
 
 pub use state::CopaibaApp;

@@ -73,9 +73,13 @@ impl CopaibaApp {
                         crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
                             if ui.button(RichText::new(format!("✅ {}", tr!("recorder.label.subst_rec"))).color(egui::Color32::GOLD)).clicked() {
                                 if let Err(e) = self.save_recorded_wav(&entry.filename) {
-                                    self.ui.status = format!("{} {}", tr!("recorder.label.error"), e);
+                                    let msg = format!("{} {}", tr!("recorder.label.error"), e);
+                                    self.ui.toast_manager.error(msg.clone());
+                                    self.ui.status = msg;
                                 } else {
-                                    self.ui.status = format!("{} {}", tr!("recorder.label.success"), entry.alias);
+                                    let msg = format!("{} {}", tr!("recorder.label.success"), entry.alias);
+                                    self.ui.toast_manager.success(msg.clone());
+                                    self.ui.status = msg;
                                     self.ui.show_recorder = false;
                                     self.audio.recorded_wav = None;
                                 }
@@ -114,10 +118,14 @@ impl CopaibaApp {
                 self.audio.recorder_stream = Some(stream);
                 self.audio.recorder_sample_rate = rate;
                 self.audio.is_recording = true;
-                self.ui.status = format!("{} {} Hz...", tr!("recorder.label.recording_at"), rate);
+                let msg = format!("{} {} Hz...", tr!("recorder.label.recording_at"), rate);
+                self.ui.toast_manager.info(msg.clone());
+                self.ui.status = msg;
             }
             Err(e) => {
-                self.ui.status = format!("{} {}", tr!("recorder.label.error_start_rec"), e);
+                let msg = format!("{} {}", tr!("recorder.label.error_start_rec"), e);
+                self.ui.toast_manager.error(msg.clone());
+                self.ui.status = msg;
             }
         }
     }

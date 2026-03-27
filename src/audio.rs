@@ -24,9 +24,19 @@ pub struct WavWithSpec {
     pub pitch_data: Option<PitchData>,
 }
 
-/// Load a WAV file, mix down to mono, normalize to f32 -1..1
+/// Load a WAV file from a file path
 pub fn load_wav(path: &Path) -> Result<WavWithSpec, String> {
-    let mut reader = WavReader::open(path).map_err(|e| e.to_string())?;
+    let reader = WavReader::open(path).map_err(|e| e.to_string())?;
+    load_wav_from_reader(reader)
+}
+
+/// Load a WAV file from raw bytes (embedded)
+pub fn load_wav_from_bytes(bytes: &[u8]) -> Result<WavWithSpec, String> {
+    let reader = WavReader::new(std::io::Cursor::new(bytes)).map_err(|e| e.to_string())?;
+    load_wav_from_reader(reader)
+}
+
+fn load_wav_from_reader<R: std::io::Read + std::io::Seek>(mut reader: WavReader<R>) -> Result<WavWithSpec, String> {
     let spec = reader.spec();
     let sample_rate = spec.sample_rate;
     

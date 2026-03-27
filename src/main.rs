@@ -73,6 +73,33 @@ fn main() -> eframe::Result {
 
     #[cfg(target_arch = "wasm32")]
     {
+        // Redirect `log` messages to `console.log` and friends:
+        eframe::WebLogger::init(log::LevelFilter::Debug).ok();
+
+        let web_options = eframe::WebOptions::default();
+
+        wasm_bindgen_futures::spawn_local(async {
+            let runner = eframe::WebRunner::new();
+            runner.start(
+                "the_canvas_id",
+                web_options,
+                Box::new(|cc| {
+                    egui_extras::install_image_loaders(&cc.egui_ctx);
+                    let mut app = CopaibaApp::default();
+                    // Load prefs usually uses internal browser storage on WASM
+                    app.load_prefs();
+                    
+                    apply_theme(&cc.egui_ctx, app.config.theme);
+                    let lang = app.config.language.clone();
+                    app.set_language(&lang);
+                    
+                    app.load_ui_sounds();
+                    setup_fonts(&cc.egui_ctx);
+                    
+                    Ok(Box::new(app))
+                }),
+            ).await.expect("failed to start eframe");
+        });
         Ok(())
     }
 }
@@ -110,6 +137,7 @@ fn setup_fonts(ctx: &egui::Context) {
         "C:\\Windows\\Fonts\\arialuni.ttf",  // Arial Unicode MS
     ];
 
+    #[cfg(not(target_arch = "wasm32"))]
     for path in system_fonts {
         if Path::new(path).exists() {
             if let Ok(data) = std::fs::read(path) {
@@ -138,6 +166,7 @@ fn setup_fonts(ctx: &egui::Context) {
         "C:\\Windows\\Fonts\\arial.ttf",       // Arial
     ];
 
+    #[cfg(not(target_arch = "wasm32"))]
     for path in arabic_fonts {
         if Path::new(path).exists() {
             if let Ok(data) = std::fs::read(path) {
@@ -161,7 +190,7 @@ impl eframe::App for CopaibaApp {
 
         if self.ui.show_splash {
             self.ui.splash_progress += ctx.input(|i| i.stable_dt).min(0.1);
-            if self.ui.splash_progress > 3.5 {
+            if self.ui.splash_progress > 1.6 {
                 self.ui.show_splash = false;
             }
             ctx.request_repaint();
@@ -195,6 +224,9 @@ impl eframe::App for CopaibaApp {
         // ── Modal windows ──────────────────────────────────────────────────────
         self.show_modals(ctx);
 
+        // ── Toasts ─────────────────────────────────────────────────────────────
+        self.ui.toast_manager.draw(ctx);
+
         // Repaint rate
         if self.audio.playback_start.is_some() || self.ui.show_splash {
             ctx.request_repaint_after(std::time::Duration::from_millis(32));
@@ -222,17 +254,17 @@ pub fn apply_light_theme(ctx: &egui::Context) {
     visuals.extreme_bg_color = Color32::from_rgb(235, 235, 240);
     visuals.faint_bg_color = Color32::from_rgb(240, 240, 245);
     
-    visuals.widgets.noninteractive.bg_fill = Color32::from_rgb(230, 230, 235);
-    visuals.widgets.noninteractive.corner_radius = egui::CornerRadius::same(6);
+    visuals.widgets.noninteractive.bg_fill = Color32::from_rgb(235, 235, 240);
+    visuals.widgets.noninteractive.corner_radius = egui::CornerRadius::same(10);
     
     visuals.widgets.inactive.bg_fill = Color32::from_rgb(220, 220, 225);
-    visuals.widgets.inactive.corner_radius = egui::CornerRadius::same(6);
+    visuals.widgets.inactive.corner_radius = egui::CornerRadius::same(10);
     
     visuals.widgets.hovered.bg_fill = Color32::from_rgb(210, 210, 220);
-    visuals.widgets.hovered.corner_radius = egui::CornerRadius::same(6);
+    visuals.widgets.hovered.corner_radius = egui::CornerRadius::same(10);
     
     visuals.widgets.active.bg_fill = Color32::from_rgb(180, 160, 220);
-    visuals.widgets.active.corner_radius = egui::CornerRadius::same(6);
+    visuals.widgets.active.corner_radius = egui::CornerRadius::same(10);
 
     visuals.override_text_color = Some(Color32::from_rgb(30, 30, 46));
     visuals.hyperlink_color = Color32::from_rgb(50, 100, 200);
@@ -249,14 +281,15 @@ pub fn apply_dark_theme(ctx: &egui::Context) {
     visuals.window_fill = Color32::from_rgb(24, 24, 36);
     visuals.extreme_bg_color = Color32::from_rgb(12, 12, 20);
     visuals.faint_bg_color = Color32::from_rgb(24, 24, 36);
-    visuals.widgets.noninteractive.bg_fill = Color32::from_rgb(30, 30, 46);
-    visuals.widgets.noninteractive.corner_radius = egui::CornerRadius::same(6);
-    visuals.widgets.inactive.bg_fill = Color32::from_rgb(38, 38, 56);
-    visuals.widgets.inactive.corner_radius = egui::CornerRadius::same(6);
-    visuals.widgets.hovered.bg_fill = Color32::from_rgb(50, 50, 72);
-    visuals.widgets.hovered.corner_radius = egui::CornerRadius::same(6);
-    visuals.widgets.active.bg_fill = Color32::from_rgb(70, 50, 110);
-    visuals.widgets.active.corner_radius = egui::CornerRadius::same(6);
+    visuals.widgets.noninteractive.bg_fill = Color32::from_rgba_premultiplied(30, 30, 46, 200);
+    visuals.widgets.noninteractive.corner_radius = egui::CornerRadius::same(10);
+    visuals.widgets.inactive.bg_fill = Color32::from_rgba_premultiplied(38, 38, 56, 220);
+    visuals.widgets.inactive.corner_radius = egui::CornerRadius::same(10);
+    visuals.widgets.hovered.bg_fill = Color32::from_rgba_premultiplied(50, 50, 72, 230);
+    visuals.widgets.hovered.corner_radius = egui::CornerRadius::same(10);
+    visuals.widgets.active.bg_fill = Color32::from_rgba_premultiplied(70, 50, 110, 255);
+    visuals.widgets.active.corner_radius = egui::CornerRadius::same(10);
+    
     visuals.override_text_color = Some(Color32::from_rgb(205, 214, 244));
     visuals.hyperlink_color = Color32::from_rgb(137, 180, 250);
     visuals.selection.bg_fill = Color32::from_rgb(70, 50, 120);
@@ -267,7 +300,8 @@ pub fn apply_dark_theme(ctx: &egui::Context) {
 
 fn setup_common_style(ctx: &egui::Context) {
     let mut style = (*ctx.style()).clone();
-    style.spacing.item_spacing = Vec2::new(6.0, 4.0);
-    style.spacing.button_padding = Vec2::new(8.0, 4.0);
+    style.spacing.item_spacing = Vec2::new(8.0, 6.0);
+    style.spacing.button_padding = Vec2::new(10.0, 6.0);
+    style.spacing.window_margin = egui::Margin::same(12);
     ctx.set_style(style);
 }

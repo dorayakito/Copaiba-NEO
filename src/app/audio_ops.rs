@@ -31,17 +31,20 @@ impl CopaibaApp {
     }
 
     pub fn load_ui_sounds(&mut self) {
-        let sounds_dir = std::path::Path::new("sounds");
-        if let Ok(entries) = std::fs::read_dir(sounds_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.extension().map_or(false, |ext| ext == "wav") {
-                    if let Some(name) = path.file_stem().and_then(|s| s.to_str()) {
-                        if let Ok(ws) = load_wav(&path) {
-                            self.audio.ui_sounds.insert(name.to_string(), ws.wav);
-                        }
-                    }
-                }
+        let sounds = [
+            ("key01", include_bytes!("../../sounds/key01.wav").as_slice()),
+            ("key02", include_bytes!("../../sounds/key02.wav").as_slice()),
+            ("key03", include_bytes!("../../sounds/key03.wav").as_slice()),
+            ("key04", include_bytes!("../../sounds/key04.wav").as_slice()),
+            ("key05", include_bytes!("../../sounds/key05.wav").as_slice()),
+            ("key06", include_bytes!("../../sounds/key06.wav").as_slice()),
+            ("enter", include_bytes!("../../sounds/enter.wav").as_slice()),
+            ("space", include_bytes!("../../sounds/space.wav").as_slice()),
+        ];
+
+        for (name, bytes) in sounds {
+            if let Ok(ws) = crate::audio::load_wav_from_bytes(bytes) {
+                self.audio.ui_sounds.insert(name.to_string(), ws.wav);
             }
         }
     }
@@ -171,7 +174,9 @@ impl CopaibaApp {
                             Err(e) => { self.ui.status = format!("{} {}", tr!("audio.resampler.status.load_error"), e); }
                         }
                     } else {
-                        self.ui.status = format!("{} {}", tr!("audio.resampler.status.error"), String::from_utf8_lossy(&output.stderr));
+                        let msg = format!("{} {}", tr!("audio.resampler.status.error"), String::from_utf8_lossy(&output.stderr));
+                        self.ui.toast_manager.error(msg.clone());
+                        self.ui.status = msg;
                     }
                 }
                 Err(e) => { self.ui.status = format!("{} {}", tr!("audio.resampler.status.exec_error"), e); }

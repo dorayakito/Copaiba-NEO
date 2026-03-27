@@ -173,7 +173,9 @@ impl crate::app::CopaibaApp {
         }
         
         if processed_any {
-            self.ui.status = format!("{} (Auto-Oto)", egui_i18n::tr!("modal.batch.edit.status.success"));
+            let msg = format!("{} (Auto-Oto)", egui_i18n::tr!("modal.batch.edit.status.success"));
+            self.ui.toast_manager.success(msg.clone());
+            self.ui.status = msg;
         }
     }
 }

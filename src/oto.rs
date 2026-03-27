@@ -60,20 +60,14 @@ pub struct ParsedOto {
 pub fn parse_oto(path: &Path) -> Result<ParsedOto, String> {
     let bytes = fs::read(path).map_err(|e: std::io::Error| e.to_string())?;
 
-    let (text, encoding) = if std::str::from_utf8(&bytes).is_ok() {
-        (
-            String::from_utf8_lossy(&bytes).into_owned(),
-            OtoEncoding::Utf8,
-        )
+    let (decoded_sjis, _, had_errors_sjis) = encoding_rs::SHIFT_JIS.decode(&bytes);
+    let (text, encoding) = if !had_errors_sjis {
+        (decoded_sjis.into_owned(), OtoEncoding::ShiftJis)
+    } else if std::str::from_utf8(&bytes).is_ok() {
+        (String::from_utf8_lossy(&bytes).into_owned(), OtoEncoding::Utf8)
     } else {
-        // Try Shift-JIS first, then GBK
-        let (decoded_sjis, _, had_errors_sjis) = encoding_rs::SHIFT_JIS.decode(&bytes);
-        if !had_errors_sjis {
-            (decoded_sjis.into_owned(), OtoEncoding::ShiftJis)
-        } else {
-            let (decoded_gbk, _, _) = encoding_rs::GBK.decode(&bytes);
-            (decoded_gbk.into_owned(), OtoEncoding::Gbk)
-        }
+        let (decoded_gbk, _, _) = encoding_rs::GBK.decode(&bytes);
+        (decoded_gbk.into_owned(), OtoEncoding::Gbk)
     };
 
     let mut entries = Vec::new();

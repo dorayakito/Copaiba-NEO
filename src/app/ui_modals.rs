@@ -673,7 +673,7 @@ impl CopaibaApp {
                     
                     ui.add_space(32.0);
                     
-                    let progress = (self.ui.splash_progress / 3.5).clamp(0.0, 1.0);
+                    let progress = (self.ui.splash_progress / 1.6).clamp(0.0, 1.0);
                     ui.add(egui::ProgressBar::new(progress).desired_width(280.0).animate(true));
                     ui.add_space(8.0);
                     
@@ -684,7 +684,7 @@ impl CopaibaApp {
                         "Sincronizando satélite ...",
                         "Portando o bengue fengue xengue ...",
                     ];
-                    let msg_idx = ((self.ui.splash_progress / (3.5_f32 / messages.len() as f32)) as usize).min(messages.len() - 1);
+                    let msg_idx = ((self.ui.splash_progress / (1.6_f32 / messages.len() as f32)) as usize).min(messages.len() - 1);
                     ui.label(RichText::new(messages[msg_idx]).italics().size(12.0).color(egui::Color32::from_gray(100)));
                 });
             });

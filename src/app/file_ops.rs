@@ -328,6 +328,7 @@ impl CopaibaApp {
 
             // Search for readme/license
             let mut readme = String::new();
+            let mut readme_path = None;
             let mut license = String::new();
             let readme_files = ["readme.txt", "readme.html", "README.txt", "Readme.txt", "readme", "README"];
             let license_files = ["license.txt", "licence.txt", "LICENSE.txt", "license", "licence", "LICENSE"];
@@ -341,6 +342,7 @@ impl CopaibaApp {
                             crate::oto::OtoEncoding::ShiftJis => encoding_rs::SHIFT_JIS.decode(&rb).0.to_string(),
                             crate::oto::OtoEncoding::Gbk => encoding_rs::GBK.decode(&rb).0.to_string(),
                         };
+                        readme_path = Some(rp);
                         break;
                     }
                 }
@@ -365,6 +367,8 @@ impl CopaibaApp {
             tab.character_image_path = image;
             tab.character_texture = None;
             tab.root_path = Some(root_dir);
+            tab.readme_path = readme_path;
+            tab.original_readme_text = readme.clone();
             tab.readme_text = readme;
             tab.license_text = license;
         }
@@ -401,11 +405,15 @@ impl CopaibaApp {
                 }
                 self.load_character_metadata(self.current_tab);
                 self.add_to_recent(self.current_tab);
-                self.ui.status = format!("{} {}", self.cur().entries.len(), tr!("file_ops.status.aliases_loaded"));
+                let msg = format!("{} {}", self.cur().entries.len(), tr!("file_ops.status.aliases_loaded"));
+                self.ui.toast_manager.success(msg.clone());
+                self.ui.status = msg;
                 self.save_prefs();
             }
             Err(e) => {
-                self.ui.status =  format!("{} {e}", tr!("file_ops.status.open_error"));
+                let msg = format!("{} {e}", tr!("file_ops.status.open_error"));
+                self.ui.toast_manager.error(msg.clone());
+                self.ui.status = msg;
             }
         }
     }
@@ -427,10 +435,14 @@ impl CopaibaApp {
                     let tab = self.cur_mut();
                     tab.original_entries = tab.entries.clone();
                     tab.dirty = false;
-                    self.ui.status = tr!("file_ops.status.saved_success").to_string();
+                    let msg = tr!("file_ops.status.saved_success").to_string();
+                    self.ui.toast_manager.success(msg.clone());
+                    self.ui.status = msg;
                 }
                 Err(e) => {
-                    self.ui.status = format!("{} {e}", tr!("file_ops.status.save_error"));
+                    let msg = format!("{} {e}", tr!("file_ops.status.save_error"));
+                    self.ui.toast_manager.error(msg.clone());
+                    self.ui.status = msg;
                 }
             }
         } else {

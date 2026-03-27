@@ -28,6 +28,8 @@ pub struct TabState {
     pub character_image_path: Option<PathBuf>,
     pub character_texture: Option<egui::TextureHandle>,
     pub root_path: Option<PathBuf>,
+    pub original_readme_text: String,
+    pub readme_path: Option<PathBuf>,
     pub readme_text: String,
     pub license_text: String,
     pub dirty: bool,
@@ -53,6 +55,8 @@ impl Default for TabState {
             character_image_path: None,
             character_texture: None,
             root_path: None,
+            original_readme_text: String::new(),
+            readme_path: None,
             readme_text: String::new(),
             license_text: String::new(),
             dirty: false,
@@ -234,6 +238,9 @@ pub struct UiState {
     
     pub show_readme: bool,
     pub show_license: bool,
+
+    // Toasts
+    pub toast_manager: crate::app::toast::ToastManager,
 }
 
 impl Default for UiState {
@@ -265,6 +272,7 @@ impl Default for UiState {
             splash_progress: 0.0,
             show_readme: false,
             show_license: false,
+            toast_manager: crate::app::toast::ToastManager::default(),
         }
     }
 }

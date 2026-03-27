@@ -103,6 +103,8 @@ jobs:
         ndk-version: r26b
     - name: Install cargo-apk
       run: cargo install cargo-apk
+    - name: Install Android Platform 30
+      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-30" "platforms;android-33"
     - name: Build APK
       env:
         ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
