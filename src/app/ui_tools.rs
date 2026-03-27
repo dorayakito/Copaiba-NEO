@@ -3,6 +3,8 @@ use super::state::CopaibaApp;
 
 impl CopaibaApp {
     pub fn show_tools_panel(&mut self, ctx: &egui::Context) {
+        if !self.ui.show_tools_panel { return; }
+
         egui::SidePanel::right("tools_panel")
             .resizable(true)
             .default_width(180.0)
@@ -36,6 +38,11 @@ impl CopaibaApp {
 
                     ui.add_space(4.0);
                     if ui.button(tr!("tools.btn.edit_presets")).clicked() { self.ui.show_preset_editor = true; }
+
+                    ui.add_space(8.0);
+                    if ui.button("Prefix Map Editor").on_hover_text("Open dedicated prefix map tool").clicked() {
+                        self.ui.show_pmap_editor = true;
+                    }
 
                     ui.add_space(20.0);
                     ui.heading(format!("🕹️ {}", tr!("tools.label.edit_modes")));

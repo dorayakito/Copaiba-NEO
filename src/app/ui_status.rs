@@ -35,9 +35,14 @@ impl CopaibaApp {
                     let elapsed = now - self.session_start_time;
                     let mins = (elapsed / 60.0).floor();
                     let secs = (elapsed % 60.0).floor();
-                    ui.label(RichText::new(format!("{} {:02}:{:02}", tr!("status.label.time_elapsed"), mins as u32, secs as u32)).small().color(egui::Color32::GRAY));
+                    ui.label(RichText::new(format!("⏳ {} {:02}:{:02}", tr!("status.label.time_elapsed"), mins as u32, secs as u32)).small().color(egui::Color32::GRAY));
                     ui.add_space(16.0);
-                    ui.label(RichText::new(if tab.dirty { tr!("status.label.not_saved") } else { tr!("status.label.saved") }).small().color(egui::Color32::GRAY));
+                    
+                    if tab.dirty {
+                        ui.label(RichText::new(format!("⚠ {}", tr!("status.label.not_saved"))).small().color(egui::Color32::from_rgb(255, 100, 100)).strong());
+                    } else {
+                        ui.label(RichText::new(format!("✓ {}", tr!("status.label.saved"))).small().color(egui::Color32::GRAY));
+                    }
                     ctx.request_repaint_after(std::time::Duration::from_millis(500));
 
                     ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {

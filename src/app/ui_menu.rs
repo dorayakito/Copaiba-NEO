@@ -275,14 +275,14 @@ impl CopaibaApp {
                 });
 
                 ui.separator();
-                if ui
-                    .button(
-                        RichText::new(format!("{} (F9)", tr!("menu.others.re_record")))
-                            .color(egui::Color32::from_rgb(100, 200, 100))
-                            .strong(),
-                    )
-                    .clicked()
-                {
+                ui.separator();
+                let toggle_icon = if self.ui.show_tools_panel { "🗙" } else { "🧰" };
+                if ui.button(format!("{} Ferramentas", toggle_icon)).on_hover_text("Mostrar/Ocultar painel direito").clicked() {
+                    self.ui.show_tools_panel = !self.ui.show_tools_panel;
+                }
+                
+                ui.separator();
+                if ui.button(format!("🎤 {} (F9)", tr!("menu.others.re_record"))).clicked() {
                     self.ui.show_recorder = true;
                 }
 

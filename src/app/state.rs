@@ -227,6 +227,7 @@ pub struct UiState {
     #[allow(dead_code)]
     pub search_string: String,
     pub auto_scroll_to_selected: bool,
+    pub show_tools_panel: bool,
     
     // Tools/Plugins windows
     pub show_consistency_checker: bool,
@@ -253,8 +254,14 @@ pub struct UiState {
     
     pub show_readme: bool,
     pub show_license: bool,
-    pub show_readme_panel: bool,
-    pub show_pmap_panel: bool,
+    pub show_pmap_editor: bool,
+    pub pmap_search_query: String,
+    pub pmap_batch_pre: String,
+    pub pmap_batch_suf: String,
+    
+    // Status Console
+    pub log_history: Vec<(String, egui::Color32)>,
+    pub available_devices: Vec<String>,
 
     // Toasts
     pub toast_manager: crate::app::toast::ToastManager,
@@ -272,6 +279,7 @@ impl Default for UiState {
             is_renaming: false,
             search_string: String::new(),
             auto_scroll_to_selected: true,
+            show_tools_panel: true,
             show_consistency_checker: false,
             show_batch_rename: false,
             show_batch_edit: false,
@@ -289,8 +297,12 @@ impl Default for UiState {
             splash_progress: 0.0,
             show_readme: false,
             show_license: false,
-            show_readme_panel: false,
-            show_pmap_panel: false,
+            show_pmap_editor: false,
+            pmap_search_query: String::new(),
+            pmap_batch_pre: String::new(),
+            pmap_batch_suf: String::new(),
+            log_history: Vec::new(),
+            available_devices: Vec::new(),
             toast_manager: crate::app::toast::ToastManager::default(),
         }
     }
@@ -306,6 +318,9 @@ pub struct AppConfig {
     pub auto_save_interval_mins: u32,
     pub test_duration_ms: f64,
     pub test_pitch: String,
+    pub test_flags: String,
+    pub test_volume: f32,
+    pub audio_device: Option<String>,
     pub resampler_path: Option<PathBuf>,
     pub recent_voicebanks: Vec<RecentVoicebank>,
     pub play_ui_sounds: bool,
@@ -334,6 +349,9 @@ impl Default for AppConfig {
             auto_save_interval_mins: 5,
             test_duration_ms: 350.0,
             test_pitch: "C4".to_string(),
+            test_flags: String::new(),
+            test_volume: 1.0,
+            audio_device: None,
             resampler_path: None,
             recent_voicebanks: Vec::new(),
             play_ui_sounds: true,
@@ -388,8 +406,6 @@ pub struct CopaibaApp {
     #[allow(dead_code)]
     pub last_auto_save_time: f64,
     pub project_path: Option<PathBuf>,
-    pub pmap_batch_pre: String,
-    pub pmap_batch_suf: String,
 }
 
 impl Default for CopaibaApp {
@@ -415,11 +431,11 @@ impl Default for CopaibaApp {
             pitch_window_ms: 10.0,
 
             presets: vec![
-                Preset { name: "CV".into(), offset: 0.0, consonant: 100.0, cutoff: -250.0, preutter: 20.0, overlap: 10.0 },
-                Preset { name: "VC".into(), offset: 0.0, consonant: 150.0, cutoff: -400.0, preutter: 70.0, overlap: 40.0 },
-                Preset { name: "VCV".into(), offset: 0.0, consonant: 100.0, cutoff: -300.0, preutter: 50.0, overlap: 50.0 },
-                Preset { name: "VV".into(), offset: 0.0, consonant: 100.0, cutoff: -150.0, preutter: 20.0, overlap: 20.0 },
-                Preset { name: "- CV".into(), offset: 0.0, consonant: 100.0, cutoff: -200.0, preutter: 40.0, overlap: 20.0 },
+                Preset { name: "CV".into(), offset: 0.0, consonant: 100.0, cutoff: -250.0, preutter: 35.0, overlap: 15.0 },
+                Preset { name: "VC".into(), offset: 0.0, consonant: 110.0, cutoff: -180.0, preutter: 70.0, overlap: 40.0 },
+                Preset { name: "VCV".into(), offset: 0.0, consonant: 400.0, cutoff: -550.0, preutter: 250.0, overlap: 110.0 },
+                Preset { name: "VV".into(), offset: 0.0, consonant: 100.0, cutoff: -150.0, preutter: 80.0, overlap: 80.0 },
+                Preset { name: "- CV".into(), offset: 0.0, consonant: 100.0, cutoff: -200.0, preutter: 60.0, overlap: 0.0 },
             ],
 
             rename_find: String::new(),
@@ -437,8 +453,6 @@ impl Default for CopaibaApp {
             session_start_time: 0.0,
             last_auto_save_time: 0.0,
             project_path: None,
-            pmap_batch_pre: String::new(),
-            pmap_batch_suf: String::new(),
         }
     }
 }

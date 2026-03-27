@@ -144,7 +144,7 @@ impl CopaibaApp {
                     tab.wave_view.reset_to(dur);
                 }
                 
-                // Centering logic
+                // Centering logic (Request 7 fix for cache hits)
                 tab.wave_view.target_view_start_ms = (off - tab.wave_view.target_view_range_ms * 0.3)
                     .clamp(0.0, (dur - tab.wave_view.target_view_range_ms).max(0.0));
                 

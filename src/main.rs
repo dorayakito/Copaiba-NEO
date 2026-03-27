@@ -240,6 +240,7 @@ impl eframe::App for CopaibaApp {
 
         // ── Modal windows ──────────────────────────────────────────────────────
         self.show_modals(ctx);
+        self.show_pmap_editor(ctx);
 
         // ── Toasts ─────────────────────────────────────────────────────────────
         self.ui.toast_manager.draw(ctx);
@@ -317,8 +318,14 @@ pub fn apply_dark_theme(ctx: &egui::Context) {
 
 fn setup_common_style(ctx: &egui::Context) {
     let mut style = (*ctx.style()).clone();
-    style.spacing.item_spacing = Vec2::new(8.0, 6.0);
-    style.spacing.button_padding = Vec2::new(10.0, 6.0);
+    
+    // Resize Handle (make panels easier to grab)
+    style.spacing.interact_size.y = 12.0;
+
+    style.spacing.item_spacing = egui::Vec2::new(8.0, 6.0);
+    style.spacing.button_padding = egui::Vec2::new(10.0, 6.0);
     style.spacing.window_margin = egui::Margin::same(12);
+    style.interaction.selectable_labels = false;
     ctx.set_style(style);
 }
+

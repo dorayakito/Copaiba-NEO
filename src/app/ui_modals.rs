@@ -692,18 +692,61 @@ impl CopaibaApp {
 
     fn modal_readme(&mut self, ctx: &egui::Context) {
         if !self.ui.show_readme { return; }
-        let mut open = self.ui.show_readme;
-        let readme_text = self.cur().readme_text.clone();
+        let mut window_open = self.ui.show_readme;
+        let tab_idx = self.current_tab;
+        let mut save_clicked = false;
+        let mut cancel_clicked = false;
+        let mut close_window = false;
+
         egui::Window::new("📄 Readme")
             .id(egui::Id::new("readme_modal"))
-            .open(&mut open)
-            .default_size([600.0, 400.0])
+            .open(&mut window_open)
+            .default_size([600.0, 480.0])
             .show(ctx, |ui| {
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    ui.label(&readme_text);
+                let tab = &mut self.tabs[tab_idx];
+                let changed = tab.readme_text != tab.original_readme_text;
+
+                ui.vertical(|ui| {
+                    ui.group(|ui| {
+                        egui::ScrollArea::vertical().id_salt("readme_edit_scroll").max_height(400.0).show(ui, |ui| {
+                            ui.add(egui::TextEdit::multiline(&mut tab.readme_text)
+                                .desired_width(f32::INFINITY)
+                                .font(egui::TextStyle::Monospace));
+                        });
+                    });
+
+                    ui.add_space(8.0);
+                    ui.horizontal(|ui| {
+                        if ui.add_enabled(changed, egui::Button::new(RichText::new("💾 Save Changes").strong())).clicked() {
+                            save_clicked = true;
+                        }
+                        if ui.add_enabled(changed, egui::Button::new("✖ Cancel")).clicked() {
+                            cancel_clicked = true;
+                        }
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if ui.button("Close").clicked() { close_window = true; }
+                        });
+                    });
                 });
             });
-        self.ui.show_readme = open;
+
+        if save_clicked {
+            let tab = &mut self.tabs[tab_idx];
+            if let Some(path) = &tab.readme_path {
+                if std::fs::write(path, &tab.readme_text).is_ok() {
+                    tab.original_readme_text = tab.readme_text.clone();
+                    self.ui.toast_manager.success("Readme saved successfully!");
+                } else {
+                    self.ui.toast_manager.error("Failed to save Readme");
+                }
+            }
+        }
+        if cancel_clicked {
+            let tab = &mut self.tabs[tab_idx];
+            tab.readme_text = tab.original_readme_text.clone();
+        }
+
+        self.ui.show_readme = window_open && !close_window;
     }
 
     fn modal_license(&mut self, ctx: &egui::Context) {

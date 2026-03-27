@@ -488,38 +488,6 @@ impl CopaibaApp {
         }
     }
 
-    pub fn save_prefix_map(&mut self) {
-        let (path_opt, encoding, entries) = {
-            let tab = self.cur();
-            (tab.prefix_map_path.clone(), self.encoding, tab.prefix_map.clone())
-        };
-
-        if let Some(path) = path_opt {
-            let mut content = String::new();
-            for e in entries {
-                content.push_str(&format!("{}\t{}\t{}\n", e.pitch, e.prefix, e.suffix));
-            }
-
-            let bytes = match encoding {
-                crate::oto::OtoEncoding::Utf8 => content.as_bytes().to_vec(),
-                crate::oto::OtoEncoding::ShiftJis => encoding_rs::SHIFT_JIS.encode(&content).0.to_vec(),
-                crate::oto::OtoEncoding::Gbk => encoding_rs::GBK.encode(&content).0.to_vec(),
-            };
-
-            if std::fs::write(&path, bytes).is_ok() {
-                let tab = self.cur_mut();
-                tab.original_prefix_map = tab.prefix_map.clone();
-                self.ui.toast_manager.success("prefix.map salvo com sucesso!");
-            } else {
-                self.ui.toast_manager.error("Erro ao salvar prefix.map");
-            }
-        }
-    }
-
-    pub fn cancel_prefix_map(&mut self) {
-        let tab = self.cur_mut();
-        tab.prefix_map = tab.original_prefix_map.clone();
-    }
 
     pub fn ensure_wav_loaded(&mut self) {
         let (fname, dir_opt) = {
@@ -573,6 +541,16 @@ impl CopaibaApp {
                     if !persistent {
                         self.cur_mut().wave_view.reset_to(dur);
                     }
+                    
+                    // Centering logic (Request 7 fix)
+                    let entry_off = {
+                        let tab = self.cur();
+                        tab.filtered.get(tab.selected).copied().and_then(|idx| tab.entries.get(idx)).map(|e| e.offset).unwrap_or(0.0)
+                    };
+                    let tab = self.cur_mut();
+                    tab.wave_view.target_view_start_ms = (entry_off - tab.wave_view.target_view_range_ms * 0.3)
+                        .clamp(0.0, (dur - tab.wave_view.target_view_range_ms).max(0.0));
+                    tab.wave_view.view_start_ms = tab.wave_view.target_view_start_ms;
                 }
                 Err(e) => { self.ui.status = format!("WAV '{fname}': {e}"); }
             }

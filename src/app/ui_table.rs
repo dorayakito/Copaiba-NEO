@@ -11,38 +11,19 @@ impl CopaibaApp {
             .min_height(80.0)
             .show(ctx, |ui| {
                 let mut play_sound = false;
-                ui.add_space(4.0);
-                
-                let is_rtl = self.is_rtl();
-                {
+                let _is_rtl = self.is_rtl();
+                let (current_sel, current_focus_col, multi_sel, filtered) = {
                     let tab = self.cur_mut();
-                    crate::app::layout::horizontal(ui, is_rtl, |ui| {
-                        ui.label(RichText::new(format!("{}  ({}/{})", tr!("table.params"), tab.filtered.len(), tab.entries.len())).strong());
+                    ui.horizontal(|ui| {
+                        ui.label(RichText::new(format!("{}  ({}/{})", tr!("table.params"), tab.filtered.len(), tab.entries.len())).strong().size(11.0));
                     });
-                }
-                ui.add_space(2.0);
-                let f_changed = {
-                    let tab = self.cur_mut();
-                    ui.add(
-                        egui::TextEdit::singleline(&mut tab.filter)
-                            .hint_text(tr!("table.filter.hint"))
-                            .desired_width(f32::INFINITY)
-                    ).changed()
+                    (tab.selected, tab.focus_col, tab.multi_selection.clone(), tab.filtered.clone())
                 };
-                if f_changed { 
-                    self.rebuild_filter();
-                    play_sound = true;
-                }
 
-                let tab = self.cur_mut();
                 ui.add_space(2.0);
                 ui.separator();
 
                 let mut new_sel = None;
-                let current_sel = tab.selected;
-                let current_focus_col = tab.focus_col;
-                let multi_sel = tab.multi_selection.clone();
-                let filtered = tab.filtered.clone();
 
                 TableBuilder::new(ui)
                     .striped(true)
@@ -61,12 +42,12 @@ impl CopaibaApp {
                         header.col(|ui| { ui.strong("✔"); });
                         header.col(|ui| { ui.strong(tr!("table.col.file")); });
                         header.col(|ui| { ui.strong(tr!("table.col.alias")); });
-                        header.col(|ui| { ui.strong(tr!("table.col.offset")); });
-                        header.col(|ui| { ui.strong(tr!("table.col.overlap")); });
-                        header.col(|ui| { ui.strong(tr!("table.col.preutter")); });
-                        header.col(|ui| { ui.strong(tr!("table.col.consonant")); });
-                        header.col(|ui| { ui.strong(tr!("table.col.cutoff")); });
-                        header.col(|ui| { ui.strong(tr!("table.col.notes")); });
+                        header.col(|ui| { ui.strong(tr!("table.col.offset")).on_hover_text("Offset (OFS) - Tempo de corte inicial (ms)"); });
+                        header.col(|ui| { ui.strong(tr!("table.col.overlap")).on_hover_text("Overlap (OVL) - Sobreposição com a nota anterior (ms)"); });
+                        header.col(|ui| { ui.strong(tr!("table.col.preutter")).on_hover_text("Preutterance (PRE) - Duração da consoante (ms)"); });
+                        header.col(|ui| { ui.strong(tr!("table.col.consonant")).on_hover_text("Consonant (CON) - Região fixa não-esticável (ms)"); });
+                        header.col(|ui| { ui.strong(tr!("table.col.cutoff")).on_hover_text("Cutoff (CUT) - Ponto de corte final do ruído (ms)"); });
+                        header.col(|ui| { ui.strong(tr!("table.col.notes")).on_hover_text("Notas sobre a gravação"); });
                     })
                     .body(|body| {
                         body.rows(24.0, filtered.len(), |mut row| {
@@ -146,7 +127,7 @@ impl CopaibaApp {
 
                                 row.col(|ui| {
                                     let id = egui::Id::new(("cell", fi, 8));
-                                    let resp = ui.add(egui::TextEdit::singleline(&mut entry.notes).hint_text("...").id(id).frame(false));
+                                    let resp = ui.add(egui::TextEdit::singleline(&mut entry.notes).hint_text("📝").id(id).frame(false));
                                     if resp.changed() { 
                                         tab.dirty = true; 
                                         play_sound = true;

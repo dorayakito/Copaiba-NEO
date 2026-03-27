@@ -10,6 +10,7 @@ pub mod ui_waveform;
 pub mod ui_status;
 mod ui_header;
 pub mod ui_modals;
+pub mod ui_pmap_editor;
 pub mod recorder;
 pub mod ui_recorder;
 pub mod ui_home;

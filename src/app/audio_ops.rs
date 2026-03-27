@@ -8,6 +8,13 @@ use crate::audio::{load_wav, WavData};
 use super::state::CopaibaApp;
 
 impl CopaibaApp {
+    pub fn log(&mut self, text: impl Into<String>, color: egui::Color32) {
+        let msg = text.into();
+        self.ui.status = msg.clone();
+        self.ui.log_history.push((msg, color));
+        if self.ui.log_history.len() > 20 { self.ui.log_history.remove(0); }
+    }
+
     pub fn stop_playback(&mut self) {
         if let Some(sink) = &self.audio.sink {
             sink.stop();
@@ -70,8 +77,9 @@ impl CopaibaApp {
         self.init_audio();
         let sink = match &self.audio.sink {
             Some(s) => s,
-            None => { self.ui.status = tr!("audio.error.no_device").to_string(); return; }
+            None => { self.log(tr!("audio.error.no_device"), egui::Color32::RED); return; }
         };
+        sink.set_volume(self.config.test_volume);
 
         let tab = self.cur();
         if let Some(&idx) = tab.filtered.get(tab.selected) {
@@ -106,6 +114,7 @@ impl CopaibaApp {
         self.init_audio();
         if let Some(sink) = &self.audio.sink {
             sink.stop();
+            sink.set_volume(self.config.test_volume);
             let samples = (*wav.samples).clone();
             let source = rodio::buffer::SamplesBuffer::new(1, wav.sample_rate, samples);
             sink.append(source);
@@ -148,7 +157,7 @@ impl CopaibaApp {
             cmd.arg(&output_wav);
             cmd.arg(&self.config.test_pitch);
             cmd.arg("100");
-            cmd.arg("");
+            cmd.arg(&self.config.test_flags); // Flag field
             cmd.arg(format!("{:.0}", entry.offset));
             cmd.arg(format!("{:.0}", self.config.test_duration_ms));
             cmd.arg(format!("{:.0}", entry.consonant));
@@ -158,7 +167,7 @@ impl CopaibaApp {
             cmd.arg("120");
             cmd.arg("AA");
 
-            self.ui.status = tr!("audio.resampler.status.resampling").to_string();
+            self.log(tr!("audio.resampler.status.resampling"), egui::Color32::from_rgb(137, 180, 250));
             match cmd.output() {
                 Ok(output) => {
                     if output.status.success() {
@@ -169,17 +178,65 @@ impl CopaibaApp {
                                 // Sincroniza o cursor com a posição real no waveform original
                                 self.audio.playback_offset_ms = entry.offset;
                                 self.audio.playback_limit_ms = Some(entry.offset + dur_ms);
-                                self.ui.status = format!("{} {}", tr!("audio.resampler.status.success"), entry.alias);
+                                self.log(format!("{} {}", tr!("audio.resampler.status.success"), entry.alias), egui::Color32::GREEN);
                             }
-                            Err(e) => { self.ui.status = format!("{} {}", tr!("audio.resampler.status.load_error"), e); }
+                            Err(e) => { self.log(format!("{} {}", tr!("audio.resampler.status.load_error"), e), egui::Color32::RED); }
                         }
                     } else {
                         let msg = format!("{} {}", tr!("audio.resampler.status.error"), String::from_utf8_lossy(&output.stderr));
                         self.ui.toast_manager.error(msg.clone());
-                        self.ui.status = msg;
+                        self.log(msg, egui::Color32::RED);
                     }
                 }
-                Err(e) => { self.ui.status = format!("{} {}", tr!("audio.resampler.status.exec_error"), e); }
+                Err(e) => { self.log(format!("{} {}", tr!("audio.resampler.status.exec_error"), e), egui::Color32::RED); }
+            }
+        }
+    }
+
+    pub fn refresh_audio_devices(&mut self) {
+        use cpal::traits::{HostTrait, DeviceTrait};
+        let host = cpal::default_host();
+        if let Ok(devices) = host.output_devices() {
+            self.ui.available_devices = devices
+                .filter_map(|d| d.name().ok())
+                .collect();
+        }
+    }
+
+    pub fn set_audio_device(&mut self, name: Option<String>) {
+        use cpal::traits::{HostTrait, DeviceTrait};
+        self.config.audio_device = name.clone();
+        
+        // Stop current sinks
+        self.stop_playback();
+        self.audio.sink = None;
+        self.audio.ui_sink = None;
+        self.audio._stream = None;
+        self.audio._stream_handle = None;
+
+        let host = cpal::default_host();
+        let device = if let Some(n) = &name {
+            host.output_devices().ok().and_then(|mut ds| ds.find(|d| d.name().as_ref().ok() == Some(n)))
+        } else {
+            host.default_output_device()
+        };
+
+        if let Some(dev) = device {
+            match OutputStream::try_from_device(&dev) {
+                Ok((stream, handle)) => {
+                    if let Ok(sink) = Sink::try_new(&handle) {
+                        if let Ok(ui_sink) = Sink::try_new(&handle) {
+                            self.audio._stream = Some(stream);
+                            self.audio._stream_handle = Some(handle);
+                            self.audio.sink = Some(Arc::new(sink));
+                            self.audio.ui_sink = Some(Arc::new(ui_sink));
+                            self.log(format!("Audio device: {}", dev.name().unwrap_or_default()), egui::Color32::from_rgb(150, 200, 150));
+                        }
+                    }
+                }
+                Err(e) => {
+                    self.log(format!("Error setting device: {}", e), egui::Color32::RED);
+                }
             }
         }
     }
