@@ -343,6 +343,7 @@ impl CopaibaApp {
 
         // Open folder in explorer
         if ctrl && ctx.input(|i| i.key_pressed(egui::Key::P)) {
+            #[allow(unused_variables)]
             if let Some(ref d) = self.cur().oto_dir {
                 #[cfg(target_os = "windows")] let _ = std::process::Command::new("explorer").arg(d).spawn();
                 #[cfg(target_os = "macos")] let _ = std::process::Command::new("open").arg(d).spawn();

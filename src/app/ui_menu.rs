@@ -53,6 +53,7 @@ impl CopaibaApp {
                         .button(format!("📂 {}\tCtrl+P", tr!("menu.file.open.explorer")))
                         .clicked()
                     {
+                        #[allow(unused_variables)]
                         if let Some(ref d) = self.cur().oto_dir {
                             #[cfg(target_os = "windows")]
                             let _ = std::process::Command::new("explorer").arg(d).spawn();

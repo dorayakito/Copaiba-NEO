@@ -30,25 +30,29 @@ impl CopaibaApp {
         egui::TopBottomPanel::top("voicebank_header").show(ctx, |ui| {
             let mut save_readme_btn = false;
             let mut cancel_readme_btn = false;
+            let mut save_pmap_btn = false;
+            let mut cancel_pmap_btn = false;
             
-            let (char_tex, char_name, oto_dir, mut readme, original_readme, license, readme_path, root_path) = {
+            let (char_tex, char_name, oto_dir, mut readme, original_readme, license, readme_path, root_path, pmap, original_pmap) = {
                 let tab = &self.tabs[tab_idx];
-                (tab.character_texture.as_ref().map(|t| t.id()), tab.character_name.clone(), tab.oto_dir.clone(), tab.readme_text.clone(), tab.original_readme_text.clone(), tab.license_text.clone(), tab.readme_path.clone(), tab.root_path.clone())
+                (tab.character_texture.as_ref().map(|t| t.id()), tab.character_name.clone(), tab.oto_dir.clone(), tab.readme_text.clone(), tab.original_readme_text.clone(), tab.license_text.clone(), tab.readme_path.clone(), tab.root_path.clone(), tab.prefix_map.clone(), tab.original_prefix_map.clone())
             };
 
-            ui.add_space(4.0);
+            // ── Compact Header Row ───────────────────────────────────────────
+            ui.add_space(2.0);
             crate::app::layout::horizontal(ui, self.is_rtl(), |ui| {
-                // Character Image (60x60)
-                let (rect, _resp) = ui.allocate_at_least(Vec2::new(60.0, 60.0), egui::Sense::hover());
+                // Character Image (36x36 compact)
+                let (rect, _resp) = ui.allocate_at_least(Vec2::new(36.0, 36.0), egui::Sense::hover());
                 if let Some(tex_id) = char_tex {
                     ui.painter().image(tex_id, rect, egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)), Color32::WHITE);
                 } else {
-                    ui.painter().rect_filled(rect, 8.0, Color32::from_rgb(30, 30, 46));
-                    ui.painter().text(rect.center(), egui::Align2::CENTER_CENTER, "👤", egui::FontId::proportional(28.0), Color32::GRAY);
+                    ui.painter().rect_filled(rect, 6.0, Color32::from_rgb(30, 30, 46));
+                    ui.painter().text(rect.center(), egui::Align2::CENTER_CENTER, "👤", egui::FontId::proportional(16.0), Color32::GRAY);
                 }
 
-                ui.add_space(8.0);
+                ui.add_space(6.0);
 
+                // Name + Path (vertical, compact)
                 ui.vertical(|ui| {
                     let name = if char_name.is_empty() {
                         oto_dir.as_ref()
@@ -58,68 +62,54 @@ impl CopaibaApp {
                     } else { 
                         char_name
                     };
-                    ui.label(RichText::new(name).strong().size(16.0));
-                    ui.label(RichText::new(oto_dir.as_ref().map(|p: &PathBuf| p.to_string_lossy().to_string()).unwrap_or_default()).color(ui.visuals().weak_text_color()).size(9.0));
+                    ui.label(RichText::new(name).strong().size(13.0));
+                    ui.label(RichText::new(oto_dir.as_ref().map(|p: &PathBuf| p.to_string_lossy().to_string()).unwrap_or_default()).color(ui.visuals().weak_text_color()).size(8.0));
                 });
 
-                ui.add_space(12.0);
- 
-                 // Readme / License buttons
-                 ui.horizontal(|ui| {
-                     if readme_path.is_some() {
-                         ui.vertical(|ui| {
-                             ui.label(RichText::new("📄 Readme.txt").size(10.0).color(Color32::from_rgb(180, 180, 200)));
-                             egui::ScrollArea::vertical().id_salt("readme_scroll").max_height(48.0).show(ui, |ui| {
-                                 ui.add(egui::TextEdit::multiline(&mut readme).desired_width(550.0).font(egui::TextStyle::Small).margin(egui::Margin::same(2)));
-                             });
-                             
-                             if readme != original_readme {
-                                 ui.horizontal(|ui| {
-                                     if ui.button(RichText::new("💾 Salvar").color(Color32::from_rgb(100, 255, 100)).size(10.0)).clicked() {
-                                         save_readme_btn = true;
-                                     }
-                                     if ui.button(RichText::new("✖ Cancelar").color(Color32::from_rgb(255, 100, 100)).size(10.0)).clicked() {
-                                         cancel_readme_btn = true;
-                                     }
-                                 });
-                             }
-                         });
-                    } else if let Some(root) = &root_path {
-                         ui.vertical(|ui| {
-                             ui.add_space(16.0);
-                             let btn = egui::Button::new(RichText::new("➕ Criar readme.txt").size(11.0).color(Color32::from_rgb(170, 170, 220)))
-                                 .fill(Color32::TRANSPARENT)
-                                 .stroke(egui::Stroke::new(1.0, Color32::from_rgba_premultiplied(100, 100, 150, 50)));
-                             
-                             if ui.add(btn).clicked() {
-                                 let new_path = root.join("readme.txt");
-                                 let initial_text = "Insira os detalhes do voicebank aqui...\n";
-                                 if std::fs::write(&new_path, initial_text).is_ok() {
-                                     let tab = &mut self.tabs[tab_idx];
-                                     tab.readme_path = Some(new_path);
-                                     tab.readme_text = initial_text.to_string();
-                                     tab.original_readme_text = initial_text.to_string();
-                                     self.ui.toast_manager.success("readme.txt criado com sucesso!");
-                                 } else {
-                                     self.ui.toast_manager.error("Falha ao criar o arquivo readme.txt");
-                                 }
-                             }
-                         });
-                    }
-                    if !license.is_empty() {
-                        ui.vertical(|ui| {
-                            ui.add_space(8.0);
-                            if ui.button(RichText::new("⚖ License").size(11.0).color(Color32::from_rgb(150, 200, 150))).clicked() {
-                               self.ui.show_license = true;
+                ui.add_space(8.0);
+
+                // Toggle buttons for readme / prefix.map / license
+                ui.horizontal(|ui| {
+                    if readme_path.is_some() {
+                        let label = if self.ui.show_readme_panel { "📄 ▾" } else { "📄 ▸" };
+                        if ui.add(egui::Button::new(RichText::new(label).size(10.0)).small().fill(Color32::TRANSPARENT)).on_hover_text("Readme.txt").clicked() {
+                            self.ui.show_readme_panel = !self.ui.show_readme_panel;
+                        }
+                    } else if root_path.is_some() {
+                        if ui.add(egui::Button::new(RichText::new("➕📄").size(10.0)).small().fill(Color32::TRANSPARENT)).on_hover_text("Criar readme.txt").clicked() {
+                            let root = root_path.as_ref().unwrap();
+                            let new_path = root.join("readme.txt");
+                            let initial_text = "Insira os detalhes do voicebank aqui...\n";
+                            if std::fs::write(&new_path, initial_text).is_ok() {
+                                let tab = &mut self.tabs[tab_idx];
+                                tab.readme_path = Some(new_path);
+                                tab.readme_text = initial_text.to_string();
+                                tab.original_readme_text = initial_text.to_string();
+                                self.ui.toast_manager.success("readme.txt criado!");
                             }
-                        });
+                        }
+                    }
+
+                    if !pmap.is_empty() {
+                        let pmap_dirty = pmap != original_pmap;
+                        let label = if self.ui.show_pmap_panel { "prefix.map ▾" } else { "prefix.map ▸" };
+                        let color = if pmap_dirty { Color32::from_rgb(255, 200, 100) } else { Color32::from_rgb(160, 160, 180) };
+                        if ui.add(egui::Button::new(RichText::new(label).size(10.0).color(color)).small().fill(Color32::TRANSPARENT)).clicked() {
+                            self.ui.show_pmap_panel = !self.ui.show_pmap_panel;
+                        }
+                    }
+
+                    if !license.is_empty() {
+                        if ui.add(egui::Button::new(RichText::new("⚖").size(10.0)).small().fill(Color32::TRANSPARENT)).on_hover_text("License").clicked() {
+                            self.ui.show_license = true;
+                        }
                     }
                 });
 
+                // ── Right side: Resampler controls ───────────────────────────
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.add_space(8.0);
                     
-                    // Action Buttons (Right to Left)
                     let has_resampler = self.config.resampler_path.is_some();
                     let mut btn = ui.button(RichText::new(format!("🧪 {}", tr!("header.resampler.test"))).strong());
                     if !has_resampler {
@@ -137,7 +127,6 @@ impl CopaibaApp {
                     
                     ui.separator();
 
-                    // Pitch Selection
                     ComboBox::from_id_salt("pitch_select")
                         .selected_text(RichText::new(&self.config.test_pitch).color(Color32::from_rgb(137, 180, 250)).strong())
                         .width(60.0)
@@ -158,7 +147,6 @@ impl CopaibaApp {
                     
                     ui.separator();
 
-                    // Resampler Selection
                     if let Some(res) = &self.config.resampler_path {
                         ui.label(RichText::new(res.file_name().unwrap_or_default().to_string_lossy()).size(10.0).color(ui.visuals().weak_text_color()));
                     } else {
@@ -172,9 +160,88 @@ impl CopaibaApp {
                     }
                 });
             });
-            ui.add_space(4.0);
+            ui.add_space(2.0);
+
+            // ── Collapsible Readme Panel ─────────────────────────────────────
+            if self.ui.show_readme_panel && readme_path.is_some() {
+                ui.separator();
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new("📄 Readme.txt").size(10.0).color(Color32::from_rgb(180, 180, 200)));
+                    if readme != original_readme {
+                        if ui.button(RichText::new("💾 Salvar").color(Color32::from_rgb(100, 255, 100)).size(10.0)).clicked() {
+                            save_readme_btn = true;
+                        }
+                        if ui.button(RichText::new("✖ Cancelar").color(Color32::from_rgb(255, 100, 100)).size(10.0)).clicked() {
+                            cancel_readme_btn = true;
+                        }
+                    }
+                });
+                egui::ScrollArea::vertical().id_salt("readme_scroll").max_height(60.0).show(ui, |ui| {
+                    ui.add(egui::TextEdit::multiline(&mut readme).desired_width(f32::INFINITY).font(egui::TextStyle::Small).margin(egui::Margin::same(2)));
+                });
+            }
+
+            // ── Collapsible Prefix Map Panel ─────────────────────────────────
+            if self.ui.show_pmap_panel && !pmap.is_empty() {
+                ui.separator();
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new("prefix.map").size(10.0).color(Color32::from_rgb(180, 180, 200)));
+                    ui.add_space(4.0);
+                    if pmap != original_pmap {
+                        if ui.button(RichText::new("💾").size(10.0).color(Color32::from_rgb(100, 255, 100))).on_hover_text("Salvar prefix.map").clicked() {
+                            save_pmap_btn = true;
+                        }
+                        if ui.button(RichText::new("✖").size(10.0).color(Color32::from_rgb(255, 100, 100))).on_hover_text("Cancelar alterações").clicked() {
+                            cancel_pmap_btn = true;
+                        }
+                    }
+                    ui.add_space(8.0);
+                    ui.add(egui::TextEdit::singleline(&mut self.pmap_batch_pre).hint_text("Pre").desired_width(32.0).font(egui::FontId::monospace(9.0)));
+                    ui.add(egui::TextEdit::singleline(&mut self.pmap_batch_suf).hint_text("Suf").desired_width(32.0).font(egui::FontId::monospace(9.0)));
+                    if ui.add(egui::Button::new(RichText::new("⚡").size(10.0)).small()).on_hover_text("Aplicar em lote").clicked() {
+                        let b_pre = self.pmap_batch_pre.clone();
+                        let b_suf = self.pmap_batch_suf.clone();
+                        let tab = self.cur_mut();
+                        let has_selection = tab.prefix_map.iter().any(|e| e.selected);
+                        for e in &mut tab.prefix_map {
+                            if !has_selection || e.selected {
+                                if !b_pre.is_empty() { e.prefix = b_pre.clone(); }
+                                if !b_suf.is_empty() { e.suffix = b_suf.clone(); }
+                            }
+                        }
+                    }
+                });
+
+                let pmap_len = pmap.len();
+                let table = egui_extras::TableBuilder::new(ui)
+                    .striped(true)
+                    .max_scroll_height(60.0)
+                    .column(egui_extras::Column::auto().at_least(16.0))   // ✔
+                    .column(egui_extras::Column::initial(36.0))            // Pitch
+                    .column(egui_extras::Column::initial(50.0))            // Prefix
+                    .column(egui_extras::Column::initial(50.0));           // Suffix
+
+                table.header(14.0, |mut header| {
+                    header.col(|ui| { ui.label(RichText::new("✔").size(9.0).strong()); });
+                    header.col(|ui| { ui.label(RichText::new("Ton").size(9.0).strong()); });
+                    header.col(|ui| { ui.label(RichText::new("Pre").size(9.0).strong()); });
+                    header.col(|ui| { ui.label(RichText::new("Suf").size(9.0).strong()); });
+                })
+                .body(|body| {
+                    body.rows(18.0, pmap_len, |mut row| {
+                        let idx = row.index();
+                        let tab = self.cur_mut();
+                        if let Some(entry) = tab.prefix_map.get_mut(idx) {
+                            row.col(|ui| { ui.checkbox(&mut entry.selected, ""); });
+                            row.col(|ui| { ui.label(RichText::new(&entry.pitch).size(9.0)); });
+                            row.col(|ui| { ui.add(egui::TextEdit::singleline(&mut entry.prefix).font(egui::FontId::monospace(9.0)).margin(egui::Margin::ZERO).frame(false)); });
+                            row.col(|ui| { ui.add(egui::TextEdit::singleline(&mut entry.suffix).font(egui::FontId::monospace(9.0)).margin(egui::Margin::ZERO).frame(false)); });
+                        }
+                    });
+                });
+            }
             
-            // Post-UI Update Logic for Readme
+            // ── Post-UI Update Logic ─────────────────────────────────────────
             if save_readme_btn || cancel_readme_btn || readme != self.tabs[tab_idx].readme_text {
                 let tab = &mut self.tabs[tab_idx];
                 tab.readme_text = readme.clone();
@@ -188,9 +255,6 @@ impl CopaibaApp {
             if save_readme_btn {
                 if let Some(path) = readme_path {
                     let text = readme.clone();
-                    // Detect encoding based on original_readme_text ? For simplicity, try writing as bytes if Japanese encoding, or UTF-8
-                    // In Copaiba NEO we map encoding, but saving as UTF-8 is usually safer unless strictly handled.
-                    // We'll just write as UTF-8 bytes to the specific path.
                     if std::fs::write(&path, &text).is_ok() {
                         let tab = &mut self.tabs[tab_idx];
                         tab.original_readme_text = text;
@@ -200,6 +264,9 @@ impl CopaibaApp {
                     }
                 }
             }
+
+            if save_pmap_btn { self.save_prefix_map(); }
+            if cancel_pmap_btn { self.cancel_prefix_map(); }
         });
     }
 }

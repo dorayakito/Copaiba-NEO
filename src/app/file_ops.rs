@@ -362,6 +362,27 @@ impl CopaibaApp {
                 }
             }
 
+            let mut prefix_map_entries = Vec::new();
+            let pmap_path = root_dir.join("prefix.map");
+            if pmap_path.exists() {
+                if let Ok(pb) = std::fs::read(&pmap_path) {
+                    let content = match encoding {
+                        crate::oto::OtoEncoding::Utf8 => String::from_utf8_lossy(&pb).to_string(),
+                        crate::oto::OtoEncoding::ShiftJis => encoding_rs::SHIFT_JIS.decode(&pb).0.to_string(),
+                        crate::oto::OtoEncoding::Gbk => encoding_rs::GBK.decode(&pb).0.to_string(),
+                    };
+                    for line in content.lines() {
+                        let parts: Vec<&str> = line.split('\t').collect();
+                        if parts.len() >= 2 {
+                             let pitch = parts[0].trim().to_string();
+                             let p = if parts.len() > 2 { parts[1].trim().to_string() } else { "".to_string() };
+                             let s = if parts.len() > 2 { parts[2].trim().to_string() } else { parts[1].trim().to_string() };
+                             prefix_map_entries.push(crate::app::state::PrefixMapEntry { pitch, prefix: p, suffix: s, selected: false });
+                        }
+                    }
+                }
+            }
+
             let tab: &mut crate::app::state::TabState = &mut self.tabs[tab_idx];
             tab.character_name = name;
             tab.character_image_path = image;
@@ -371,6 +392,9 @@ impl CopaibaApp {
             tab.original_readme_text = readme.clone();
             tab.readme_text = readme;
             tab.license_text = license;
+            tab.prefix_map = prefix_map_entries.clone();
+            tab.original_prefix_map = prefix_map_entries;
+            tab.prefix_map_path = if pmap_path.exists() { Some(pmap_path) } else { None };
         }
     }
 
@@ -462,6 +486,39 @@ impl CopaibaApp {
             tab.oto_dir = path.parent().map(|p| p.to_path_buf());
             self.save_oto();
         }
+    }
+
+    pub fn save_prefix_map(&mut self) {
+        let (path_opt, encoding, entries) = {
+            let tab = self.cur();
+            (tab.prefix_map_path.clone(), self.encoding, tab.prefix_map.clone())
+        };
+
+        if let Some(path) = path_opt {
+            let mut content = String::new();
+            for e in entries {
+                content.push_str(&format!("{}\t{}\t{}\n", e.pitch, e.prefix, e.suffix));
+            }
+
+            let bytes = match encoding {
+                crate::oto::OtoEncoding::Utf8 => content.as_bytes().to_vec(),
+                crate::oto::OtoEncoding::ShiftJis => encoding_rs::SHIFT_JIS.encode(&content).0.to_vec(),
+                crate::oto::OtoEncoding::Gbk => encoding_rs::GBK.encode(&content).0.to_vec(),
+            };
+
+            if std::fs::write(&path, bytes).is_ok() {
+                let tab = self.cur_mut();
+                tab.original_prefix_map = tab.prefix_map.clone();
+                self.ui.toast_manager.success("prefix.map salvo com sucesso!");
+            } else {
+                self.ui.toast_manager.error("Erro ao salvar prefix.map");
+            }
+        }
+    }
+
+    pub fn cancel_prefix_map(&mut self) {
+        let tab = self.cur_mut();
+        tab.prefix_map = tab.original_prefix_map.clone();
     }
 
     pub fn ensure_wav_loaded(&mut self) {

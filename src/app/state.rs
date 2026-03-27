@@ -14,6 +14,15 @@ use crate::spectrogram::{SpectrogramData, SpectrogramSettings};
 use crate::waveform::{WaveformSettings, WaveformView};
 use crate::plugins;
 
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
+pub struct PrefixMapEntry {
+    pub pitch: String,
+    pub prefix: String,
+    pub suffix: String,
+    #[serde(skip)]
+    pub selected: bool,
+}
+
 #[derive(Clone, PartialEq)]
 pub struct TabState {
     pub name: String,
@@ -32,6 +41,9 @@ pub struct TabState {
     pub readme_path: Option<PathBuf>,
     pub readme_text: String,
     pub license_text: String,
+    pub prefix_map: Vec<PrefixMapEntry>,
+    pub original_prefix_map: Vec<PrefixMapEntry>,
+    pub prefix_map_path: Option<PathBuf>,
     pub dirty: bool,
     pub wave_view: WaveformView,
     pub undo_stack: Vec<Vec<OtoEntry>>,
@@ -59,6 +71,9 @@ impl Default for TabState {
             readme_path: None,
             readme_text: String::new(),
             license_text: String::new(),
+            prefix_map: Vec::new(),
+            original_prefix_map: Vec::new(),
+            prefix_map_path: None,
             dirty: false,
             wave_view: WaveformView::default(),
             undo_stack: Vec::new(),
@@ -238,6 +253,8 @@ pub struct UiState {
     
     pub show_readme: bool,
     pub show_license: bool,
+    pub show_readme_panel: bool,
+    pub show_pmap_panel: bool,
 
     // Toasts
     pub toast_manager: crate::app::toast::ToastManager,
@@ -272,6 +289,8 @@ impl Default for UiState {
             splash_progress: 0.0,
             show_readme: false,
             show_license: false,
+            show_readme_panel: false,
+            show_pmap_panel: false,
             toast_manager: crate::app::toast::ToastManager::default(),
         }
     }
@@ -369,6 +388,8 @@ pub struct CopaibaApp {
     #[allow(dead_code)]
     pub last_auto_save_time: f64,
     pub project_path: Option<PathBuf>,
+    pub pmap_batch_pre: String,
+    pub pmap_batch_suf: String,
 }
 
 impl Default for CopaibaApp {
@@ -416,6 +437,8 @@ impl Default for CopaibaApp {
             session_start_time: 0.0,
             last_auto_save_time: 0.0,
             project_path: None,
+            pmap_batch_pre: String::new(),
+            pmap_batch_suf: String::new(),
         }
     }
 }

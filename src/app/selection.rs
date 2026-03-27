@@ -120,10 +120,12 @@ impl CopaibaApp {
         self.ensure_wav_loaded();
 
         if let Some(idx) = idx_opt {
-            let (fname, off) = {
+            let (fname, off, dir_opt) = {
                 let tab = self.cur();
-                (tab.entries[idx].filename.clone(), tab.entries[idx].offset)
+                (tab.entries[idx].filename.clone(), tab.entries[idx].offset, tab.oto_dir.clone())
             };
+
+            let full_path_key = dir_opt.as_ref().map(|d| d.join(&fname).to_string_lossy().to_string()).unwrap_or_else(|| fname.clone());
 
             let mut new_wav = false;
             {
@@ -134,16 +136,19 @@ impl CopaibaApp {
                 }
             }
 
-            let wav_duration = self.wav_cache.get(&fname).map(|w| w.duration_ms);
+            let wav_duration = self.wav_cache.get(&full_path_key).map(|w| w.duration_ms);
             if let Some(dur) = wav_duration {
                 let persistent = self.visual.persistent_zoom;
                 let tab = self.cur_mut();
                 if new_wav && !persistent {
                     tab.wave_view.reset_to(dur);
                 }
+                
+                // Centering logic
                 tab.wave_view.target_view_start_ms = (off - tab.wave_view.target_view_range_ms * 0.3)
                     .clamp(0.0, (dur - tab.wave_view.target_view_range_ms).max(0.0));
-                // Snap view immediately for navigation
+                
+                // Snap view immediately for navigation if not animating yet
                 tab.wave_view.view_start_ms = tab.wave_view.target_view_start_ms;
             }
         }

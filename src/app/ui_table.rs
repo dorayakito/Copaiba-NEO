@@ -161,7 +161,12 @@ impl CopaibaApp {
                 if let Some(fi) = new_sel {
                     let ctrl = ctx.input(|i| i.modifiers.ctrl);
                     let shift = ctx.input(|i| i.modifiers.shift);
+                    let old_sel = self.cur().selected;
                     self.select_multi(fi, ctrl, shift);
+                    
+                    if self.config.play_on_select && self.cur().selected != old_sel {
+                        self.play_current_segment(false);
+                    }
                 }
                 if play_sound { self.play_key_sound(); }
             });

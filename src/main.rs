@@ -7,11 +7,15 @@ mod waveform;
 mod spectrogram;
 mod plugins;
 
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::Path;
+#[cfg(not(target_arch = "wasm32"))]
 use std::sync::Arc;
 use egui::{Color32, Stroke, Vec2};
 use app::CopaibaApp;
 use app::state::AppTheme;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsCast;
 
 fn main() -> eframe::Result {
     // Load translations at compile time
@@ -73,20 +77,28 @@ fn main() -> eframe::Result {
 
     #[cfg(target_arch = "wasm32")]
     {
-        // Redirect `log` messages to `console.log` and friends:
-        eframe::WebLogger::init(log::LevelFilter::Debug).ok();
+        console_error_panic_hook::set_once();
 
         let web_options = eframe::WebOptions::default();
 
         wasm_bindgen_futures::spawn_local(async {
+            let document = web_sys::window()
+                .expect("No window")
+                .document()
+                .expect("No document");
+            let canvas = document
+                .get_element_by_id("the_canvas_id")
+                .expect("Failed to find the_canvas_id")
+                .dyn_into::<web_sys::HtmlCanvasElement>()
+                .expect("the_canvas_id is not a HtmlCanvasElement");
+
             let runner = eframe::WebRunner::new();
             runner.start(
-                "the_canvas_id",
+                canvas,
                 web_options,
                 Box::new(|cc| {
                     egui_extras::install_image_loaders(&cc.egui_ctx);
                     let mut app = CopaibaApp::default();
-                    // Load prefs usually uses internal browser storage on WASM
                     app.load_prefs();
                     
                     apply_theme(&cc.egui_ctx, app.config.theme);
@@ -108,72 +120,77 @@ fn main() -> eframe::Result {
 
 fn setup_fonts(ctx: &egui::Context) {
     println!("Setting up fonts...");
+    #[allow(unused_mut)]
     let mut fonts = egui::FontDefinitions::default();
-    // CJK Fonts
-    let system_fonts = [
-        // Linux
-        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-        "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
-        // Windows
-        //Japones
-        "C:\\Windows\\Fonts\\msyh.ttc",   // Microsoft YaHei
-        "C:\\Windows\\Fonts\\msgothic.ttc", // MS Gothic
-        "C:\\Windows\\Fonts\\simsun.ttc",  // SimSun
-        "C:\\Windows\\Fonts\\meiryo.ttc",  // Meiryo
-        "C:\\Windows\\Fonts\\msmincho.ttc",   // MS Mincho
-        "C:\\Windows\\Fonts\\YuGothic.ttf",   // Yu Gothic
-        "C:\\Windows\\Fonts\\YuMincho.ttf",   // Yu Mincho
-        "C:\\Windows\\Fonts\\meiryo.ttc",     // Meiryo
-        "C:\\Windows\\Fonts\\msjhl.ttc",      // MS JHL
-        //Coreano
-        "C:\\Windows\\Fonts\\malgun.ttf",    // Malgun Gothic
-        "C:\\Windows\\Fonts\\gulim.ttc",     // Gulim
-        //Chines
-        "C:\\Windows\\Fonts\\simsun.ttc",     // SimSun
-        "C:\\Windows\\Fonts\\simhei.ttf",    // SimHei
-        "C:\\Windows\\Fonts\\mingliu.ttc",    // MingLiu
-        "C:\\Windows\\Fonts\\kai.ttf",       // Kai
-        "C:\\Windows\\Fonts\\arialuni.ttf",  // Arial Unicode MS
-    ];
-
     #[cfg(not(target_arch = "wasm32"))]
-    for path in system_fonts {
-        if Path::new(path).exists() {
-            if let Ok(data) = std::fs::read(path) {
-                fonts.font_data.insert("cjk_font".to_owned(), Arc::new(egui::FontData::from_owned(data)));
-                fonts.families.get_mut(&egui::FontFamily::Proportional).unwrap().push("cjk_font".to_owned());
-                fonts.families.get_mut(&egui::FontFamily::Monospace).unwrap().push("cjk_font".to_owned());
-                break;
+    {
+        // CJK Fonts
+        let system_fonts = [
+            // Linux
+            "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
+            // Windows
+            //Japones
+            "C:\\Windows\\Fonts\\msyh.ttc",   // Microsoft YaHei
+            "C:\\Windows\\Fonts\\msgothic.ttc", // MS Gothic
+            "C:\\Windows\\Fonts\\simsun.ttc",  // SimSun
+            "C:\\Windows\\Fonts\\meiryo.ttc",  // Meiryo
+            "C:\\Windows\\Fonts\\msmincho.ttc",   // MS Mincho
+            "C:\\Windows\\Fonts\\YuGothic.ttf",   // Yu Gothic
+            "C:\\Windows\\Fonts\\YuMincho.ttf",   // Yu Mincho
+            "C:\\Windows\\Fonts\\meiryo.ttc",     // Meiryo
+            "C:\\Windows\\Fonts\\msjhl.ttc",      // MS JHL
+            //Coreano
+            "C:\\Windows\\Fonts\\malgun.ttf",    // Malgun Gothic
+            "C:\\Windows\\Fonts\\gulim.ttc",     // Gulim
+            //Chines
+            "C:\\Windows\\Fonts\\simsun.ttc",     // SimSun
+            "C:\\Windows\\Fonts\\simhei.ttf",    // SimHei
+            "C:\\Windows\\Fonts\\mingliu.ttc",    // MingLiu
+            "C:\\Windows\\Fonts\\kai.ttf",       // Kai
+            "C:\\Windows\\Fonts\\arialuni.ttf",  // Arial Unicode MS
+        ];
+
+        for path in system_fonts {
+            if Path::new(path).exists() {
+                if let Ok(data) = std::fs::read(path) {
+                    fonts.font_data.insert("cjk_font".to_owned(), Arc::new(egui::FontData::from_owned(data)));
+                    fonts.families.get_mut(&egui::FontFamily::Proportional).unwrap().push("cjk_font".to_owned());
+                    fonts.families.get_mut(&egui::FontFamily::Monospace).unwrap().push("cjk_font".to_owned());
+                    break;
+                }
             }
         }
     }
 
-    // Arabic Fonts
-    let arabic_fonts = [
-        // Linux
-        "/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf",
-        "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
-        "/usr/share/fonts/truetype/noto/NotoKufiArabic-Regular.ttf",
-        "/usr/share/fonts/opentype/noto/NotoNaskhArabic-Regular.ttf",
-        "/usr/share/fonts/opentype/noto/NotoSansArabic-Regular.ttf",
-        "/usr/share/fonts/opentype/noto/NotoKufiArabic-Regular.ttf",
-        "/usr/share/fonts/truetype/droid/DroidKufi-Regular.ttf",
-        "/usr/share/fonts/truetype/droid/DroidNaskh-Regular.ttf",
-        // Windows
-        "C:\\Windows\\Fonts\\tahoma.ttf",      // Tahoma (Traditional Arabic UI)
-        "C:\\Windows\\Fonts\\segoeui.ttf",     // Segoe UI (Modern Windows UI)
-        "C:\\Windows\\Fonts\\arial.ttf",       // Arial
-    ];
-
     #[cfg(not(target_arch = "wasm32"))]
-    for path in arabic_fonts {
-        if Path::new(path).exists() {
-            if let Ok(data) = std::fs::read(path) {
-                fonts.font_data.insert("arabic_font".to_owned(), Arc::new(egui::FontData::from_owned(data)));
-                fonts.families.get_mut(&egui::FontFamily::Proportional).unwrap().push("arabic_font".to_owned());
-                fonts.families.get_mut(&egui::FontFamily::Monospace).unwrap().push("arabic_font".to_owned());
-                break;
+    {
+        // Arabic Fonts
+        let arabic_fonts = [
+            // Linux
+            "/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf",
+            "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
+            "/usr/share/fonts/truetype/noto/NotoKufiArabic-Regular.ttf",
+            "/usr/share/fonts/opentype/noto/NotoNaskhArabic-Regular.ttf",
+            "/usr/share/fonts/opentype/noto/NotoSansArabic-Regular.ttf",
+            "/usr/share/fonts/opentype/noto/NotoKufiArabic-Regular.ttf",
+            "/usr/share/fonts/truetype/droid/DroidKufi-Regular.ttf",
+            "/usr/share/fonts/truetype/droid/DroidNaskh-Regular.ttf",
+            // Windows
+            "C:\\Windows\\Fonts\\tahoma.ttf",      // Tahoma (Traditional Arabic UI)
+            "C:\\Windows\\Fonts\\segoeui.ttf",     // Segoe UI (Modern Windows UI)
+            "C:\\Windows\\Fonts\\arial.ttf",       // Arial
+        ];
+
+        for path in arabic_fonts {
+            if Path::new(path).exists() {
+                if let Ok(data) = std::fs::read(path) {
+                    fonts.font_data.insert("arabic_font".to_owned(), Arc::new(egui::FontData::from_owned(data)));
+                    fonts.families.get_mut(&egui::FontFamily::Proportional).unwrap().push("arabic_font".to_owned());
+                    fonts.families.get_mut(&egui::FontFamily::Monospace).unwrap().push("arabic_font".to_owned());
+                    break;
+                }
             }
         }
     }

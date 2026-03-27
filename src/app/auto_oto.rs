@@ -116,7 +116,7 @@ impl crate::app::CopaibaApp {
         let indices_to_process = {
             let tab = self.cur();
             if tab.multi_selection.is_empty() {
-                if let Some(mut sel) = tab.filtered.get(tab.selected).copied() {
+                if let Some(sel) = tab.filtered.get(tab.selected).copied() {
                     vec![sel]
                 } else {
                     Vec::new()
