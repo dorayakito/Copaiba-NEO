@@ -9,11 +9,19 @@ pub struct UstPluginData {
 
 impl CopaibaApp {
     pub fn handle_cli_args(&mut self, args: Vec<String>) {
-        if args.len() < 2 {
+        let mut args = args.into_iter().skip(1);
+        let first_arg = match args.next() {
+            Some(flag) if flag == "--oto" => args.next(),
+            Some(path) => Some(path),
+            None => None,
+        };
+        let Some(first_arg) = first_arg else {
             return;
-        }
-
-        let first_arg = &args[1];
+        };
+        let target_alias = args
+            .collect::<Vec<_>>()
+            .windows(2)
+            .find_map(|pair| (pair[0] == "--alias").then(|| pair[1].clone()));
         let path = PathBuf::from(first_arg);
 
         if !path.exists() {
@@ -29,6 +37,29 @@ impl CopaibaApp {
             self.ui.show_splash = false;
             self.load_oto(path);
             self.ui.show_home = false;
+            if let Some(alias) = target_alias {
+                self.focus_alias(&alias);
+            }
+        }
+    }
+
+    fn focus_alias(&mut self, alias: &str) {
+        let target = alias.trim().to_lowercase();
+        let raw_index = self
+            .cur()
+            .entries
+            .iter()
+            .position(|entry| entry.alias.trim().to_lowercase() == target);
+        let Some(raw_index) = raw_index else {
+            self.ui.toast_manager.info(format!("Alias não encontrado: {alias}"));
+            return;
+        };
+
+        self.cur_mut().filter = alias.to_string();
+        self.rebuild_filter();
+        if let Some(filtered_index) = self.cur().filtered.iter().position(|&index| index == raw_index) {
+            self.cur_mut().selected = filtered_index;
+            self.ensure_wav_loaded();
         }
     }
 

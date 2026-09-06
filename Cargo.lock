@@ -1006,6 +1006,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
+ "tempfile",
  "tracing-wasm",
  "unicode-bidi",
  "wasm-bindgen",

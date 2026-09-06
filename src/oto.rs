@@ -162,5 +162,10 @@ pub fn save_oto(entries: &[OtoEntry], path: &Path, encoding: OtoEncoding) -> Res
         }
     };
 
-    fs::write(path, final_bytes).map_err(|e: std::io::Error| e.to_string())
+    let parent = path.parent().ok_or_else(|| "Caminho de oto.ini inválido".to_string())?;
+    let mut temporary = tempfile::NamedTempFile::new_in(parent).map_err(|e| e.to_string())?;
+    temporary.write_all(&final_bytes).map_err(|e| e.to_string())?;
+    temporary.as_file().sync_all().map_err(|e| e.to_string())?;
+    temporary.persist(path).map_err(|e| e.error.to_string())?;
+    Ok(())
 }
